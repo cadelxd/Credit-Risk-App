@@ -7,7 +7,7 @@ A web application that allows users to upload Indian bank statement PDFs and use
 ## How to Run
 
 ### 1. Clone the Repository
-https://github.com/cadelxd/Credit-Risk-App<br>
+git clone https://github.com/cadelxd/Credit-Risk-App.git<br>
 cd Credit-Risk-App<br>
 
 ### 2. Create and Activate Virtual Environment
