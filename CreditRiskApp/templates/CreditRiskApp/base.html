@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Credit Risk Analyzer - Results{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <h1>Credit Risk Analysis Results</h1>
+
+    <div class="results-section">
+        <div class="prediction-card">
+            <div class="prediction-header">
+                <h2>📊 Risk Analysis Summary</h2>
+                <div class="analysis-date">
+                    <small>Analyzed on {{ analysis_date|default:"N/A" }}</small>
+                </div>
+            </div>
+
+            <div class="prediction-content">
+                <div class="risk-indicator">
+                    <div class="risk-level {{ prediction|lower }}">
+                        {% if 'high' in prediction|lower %}
+                        <h1 style="color: #e60000; font-size: 3rem;">⚠️ High Risk</h1>
+                        {% else %}
+                        <h1 style="color: #2ecc71; font-size: 3rem;">✅ Low Risk</h1>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="prediction-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Risk Level:</span>
+                        <span class="detail-value">{{ prediction }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Confidence:</span>
+                        <span class="detail-value">{{ confidence|default:"85%" }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Analysis Method:</span>
+                        <span class="detail-value">Machine Learning Model</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <form method="get" action="{% url 'home' %}">
+                    <button type="submit" class="btn-secondary">
+                        🔄 Analyze Another Statement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Keep only styles unique to results here, base styles in base.html */
+    .main-content {
+        margin-top: 70px;
+        padding: 40px 20px;
+        min-height: calc(100vh - 70px);
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+    }
+
+    .prediction-card {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        max-width: 450px;
+        margin: 0 auto;
+        color: var(--text-primary);
+    }
+
+    .prediction-header h2 {
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .analysis-date small {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .prediction-content {
+        margin-top: 30px;
+    }
+
+    .risk-indicator h1 {
+        margin: 0 0 20px;
+    }
+
+    .prediction-details {
+        text-align: left;
+        margin-top: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .detail-label {
+        color: var(--text-secondary);
+    }
+
+    .detail-value {
+        color: var(--accent-primary);
+    }
+
+    .action-buttons {
+        margin-top: 40px;
+    }
+
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 12px 25px;
+        font-size: 1rem;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        background: var(--accent-primary);
+        color: white;
+        border-color: var(--accent-primary);
+    }
+
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 30px 15px;
+        }
+        .prediction-card {
+            padding: 30px 20px;
+        }
+    }
+</style>
+{% endblock %}

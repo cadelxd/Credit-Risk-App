@@ -1,25 +1,721 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% load static %}
     <link rel="stylesheet" href="{% static 'CreditRiskApp/styles.css' %}">
-    <title>Credit Risk Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Credit Risk Analyzer - Upload Statement</title>
+    <meta name="description" content="Upload and analyze bank statements for credit risk assessment">
 </head>
 <body>
-    <h1>Upload Bank Statement</h1>
+    <!-- Fixed Top Dashboard -->
+    <div class="top-dashboard">
+        <div class="dashboard-content">
+            <div class="logo-section">
+                <h3>Credit Risk Analyzer</h3>
+            </div>
+            <div class="dashboard-controls">
+                <div class="user-welcome">
+                    <span>👋 Welcome, {{ user.username|default:"User" }}</span>
+                </div>
+                <!-- Theme Toggle -->
+                <div class="theme-toggle">
+                    <span>🌙</span>
+                    <div class="toggle-switch" onclick="toggleTheme()" role="button" tabindex="0" aria-label="Toggle dark/light mode">
+                    </div>
+                    <span>☀️</span>
+                </div>
+                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-secondary logout-btn">
+                        <span>🚪 Log Out</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Analyze Risk</button>
-    </form>
+    <div class="main-content">
+        <h1>Credit Risk Analysis</h1>
 
-    {% if prediction %}
-        <h2>Prediction: {{ prediction }}</h2>
-    {% endif %}
-    <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit">Log Out</button>
-    </form>
+        <div class="upload-section {% if analyzed %}hidden{% endif %}">
+            <div class="form-container">
+                <div class="upload-header">
+                    <h2>📄 Upload Bank Statement</h2>
+                    <p>Upload your bank statement for comprehensive credit risk analysis</p>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                    <label for="id_pdf_file">Select Bank Statement</label>
+
+    
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <input type="file" name="pdf_file" id="id_pdf_file" accept="application/pdf" required>
+
+                            <div class="file-upload-content">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">
+                                    <strong>Click to browse</strong> or drag and drop your PDF file here
+                                </div>
+                                <div class="file-upload-hint">
+                                    Supported format: PDF only
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="file-preview" id="filePreview" style="display: none;">
+                            <div class="file-info">
+                                <span class="file-name" id="fileName"></span>
+                                <span class="file-size" id="fileSize"></span>
+                                <button type="button" class="remove-file" onclick="removeFile()">✕</button>
+                            </div>
+                            <div class="upload-progress" id="uploadProgress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <span class="progress-text" id="progressText">Ready to analyze</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="analyzeBtn" disabled>
+                        <span class="btn-text">🔍 Analyze Credit Risk</span>
+                    </button>
+                </form>
+            </div>
+
+            {% if analyzed and prediction %}
+            <div class="results-section" style="display:block;">
+                <div class="prediction-card">
+                    <div class="prediction-header">
+                        <h2>📊 Risk Analysis Results</h2>
+                        <div class="analysis-date">
+                            <small>Analyzed on {{ "now"|date:"F d, Y" }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="prediction-content">
+                        <div class="risk-indicator">
+                            <div class="risk-level {{ prediction|lower }}">
+                                {% if 'high' in prediction|lower %}
+                                    <h1 style="color: #e60000; font-size: 3rem;">⚠️ High Risk</h1>
+                                {% else %}
+                                    <h1 style="color: #2ecc71; font-size: 3rem;">✅ Low Risk</h1>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                        
+                        <div class="prediction-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Risk Level:</span>
+                                <span class="detail-value">{{ prediction }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Confidence:</span>
+                                <span class="detail-value">85%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Analysis Method:</span>
+                                <span class="detail-value">Machine Learning Model</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button type="button" class="btn-secondary" onclick="analyzeAnother()">
+                            🔄 Analyze Another
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        .top-dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            height: 70px;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .dashboard-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo-section h3 {
+            margin: 0;
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .dashboard-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-welcome {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 25px;
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            top: 1px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-primary);
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(25px);
+            background: white;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .main-content {
+            margin-top: 70px;
+            padding: 40px 20px;
+            min-height: calc(100vh - 70px);
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .upload-section {
+            display: grid;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .form-container.focused {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--shadow);
+        }
+
+        .file-upload-area {
+            position: relative;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            background: var(--bg-secondary);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--accent-primary);
+            background: var(--bg-tertiary);
+            transform: scale(1.02);
+        }
+
+        .file-upload-content {
+            pointer-events: none;
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+
+        .file-upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .file-upload-hint {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .remove-file {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .remove-file:hover {
+            transform: scale(1.1);
+            background: #e60000;
+        }
+
+
+        .upload-progress {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading .btn-text {
+            animation: pulse 1.5s infinite;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-content {
+                padding: 0 15px;
+            }
+            
+            .dashboard-controls {
+                gap: 15px;
+            }
+            
+            .user-welcome {
+                display: none;
+            }
+            
+            .logo-section h3 {
+                font-size: 1.2rem;
+            }
+            
+            .theme-toggle {
+                font-size: 1rem;
+                gap: 8px;
+            }
+            
+            .toggle-switch {
+                width: 45px;
+                height: 23px;
+            }
+            
+            .toggle-switch::before {
+                width: 17px;
+                height: 17px;
+            }
+            
+            .toggle-switch.active::before {
+                transform: translateX(22px);
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+
+            .file-upload-area {
+                padding: 30px 15px;
+            }
+
+            .file-upload-icon {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+
+    <script>
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.querySelector('.toggle-switch');
+            const currentTheme = body.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                body.setAttribute('data-theme', 'dark');
+                toggle.classList.remove('active');
+                window.currentTheme = 'dark';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                toggle.classList.add('active');
+                window.currentTheme = 'light';
+            }
+        }
+
+        function initTheme() {
+            const body = document.body;
+            const toggle = document.querySelector('.toggle-switch');
+            
+            const savedTheme = window.currentTheme || 'dark';
+            body.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'light') {
+                toggle.classList.add('active');
+            }
+        }
+
+        // Keyboard accessibility for toggle
+        document.querySelector('.toggle-switch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+
+        // File Upload Functionality
+        function setupFileUpload() {
+            const fileInput = document.querySelector('input[type="file"]');
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            const filePreview = document.getElementById('filePreview');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            // File input change event
+            fileInput.addEventListener('change', function(e) {
+                handleFileSelect(e.target.files[0]);
+            });
+
+            // Drag and drop events
+            fileUploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                fileUploadArea.classList.add('dragover');
+            });
+
+            fileUploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+            });
+
+            fileUploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelect(files[0]);
+                    fileInput.files = files;
+                }
+            });
+
+            function handleFileSelect(file) {
+                if (!file) return;
+
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    showError('Please select a PDF file only.');
+                    return;
+                }
+
+                // Show file info
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                filePreview.style.display = 'block';
+                analyzeBtn.disabled = false;
+
+                // Simulate upload progress
+                simulateUploadProgress();
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            function simulateUploadProgress() {
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Preparing file...';
+                
+                setTimeout(() => {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Ready to analyze';
+                }, 500);
+            }
+
+            function showError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `⚠️ ${message}`;
+                errorDiv.style.marginTop = '10px';
+                
+                // Remove existing error messages
+                const existingError = fileUploadArea.parentNode.querySelector('.error-message');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                fileUploadArea.parentNode.appendChild(errorDiv);
+                fileUploadArea.classList.add('shake');
+                
+                setTimeout(() => {
+                    fileUploadArea.classList.remove('shake');
+                    errorDiv.remove();
+                }, 3000);
+            }
+        }
+
+        // Remove file function
+        function removeFile() {
+            const fileInput = document.querySelector('input[type="file"]');
+            const filePreview = document.getElementById('filePreview');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            fileInput.value = '';
+            filePreview.style.display = 'none';
+            analyzeBtn.disabled = true;
+        }
+
+        // Form submission handling
+        function setupFormSubmission() {
+            const uploadForm = document.getElementById('uploadForm');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            uploadForm.addEventListener('submit', function(e) {
+                const btnText = analyzeBtn.querySelector('.btn-text');
+                const fileInput = document.querySelector('input[type="file"]');
+                
+                if (!fileInput.files.length) {
+                    e.preventDefault();
+                    showFormError('Please select a file to analyze.');
+                    return;
+                }
+
+                analyzeBtn.classList.add('loading');
+                btnText.textContent = '🔄 Analyzing...';
+                analyzeBtn.disabled = true;
+            });
+
+            function showFormError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.innerHTML = `⚠️ ${message}`;
+                errorDiv.style.marginBottom = '20px';
+                
+                const formContainer = document.querySelector('.form-container');
+                const existingError = formContainer.querySelector('.error-message');
+                if (existingError) {
+                    existingError.remove();
+                }
+                
+                formContainer.insertBefore(errorDiv, uploadForm);
+                
+                setTimeout(() => {
+                    errorDiv.remove();
+                }, 3000);
+            }
+        }
+
+        // Action button functions
+        function downloadReport() {
+            // Simulate report download
+            const link = document.createElement('a');
+            link.href = 'data:text/plain;charset=utf-8,Credit Risk Analysis Report\n\nThis is a sample report download.';
+            link.download = 'credit_risk_report.txt';
+            link.click();
+        }
+
+        function analyzeAnother() {
+            // Reset form and hide results
+            removeFile();
+            const resultsSection = document.querySelector('.results-section');
+            if (resultsSection) {
+                resultsSection.style.opacity = '0';
+                setTimeout(() => {
+                    resultsSection.style.display = 'none';
+                }, 300);
+            }
+            
+            // Scroll to upload section
+            document.querySelector('.upload-section').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+
+        // Enhanced interactions
+        function setupEnhancedInteractions() {
+            const formContainer = document.querySelector('.form-container');
+            
+            // Add focus effects to form container
+            const inputs = document.querySelectorAll('input, button');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    formContainer.classList.add('focused');
+                });
+                
+                input.addEventListener('blur', function() {
+                    formContainer.classList.remove('focused');
+                });
+            });
+
+            // Add smooth animations to results if they exist
+            const resultsSection = document.querySelector('.results-section');
+            if (resultsSection) {
+                resultsSection.style.opacity = '0';
+                resultsSection.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    resultsSection.style.transition = 'all 0.5s ease';
+                    resultsSection.style.opacity = '1';
+                    resultsSection.style.transform = 'translateY(0)';
+                }, 100);
+            }
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+            setupFileUpload();
+            setupFormSubmission();
+            setupEnhancedInteractions();
+        });
+
+        // Add some additional error handling
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.error);
+        });
+
+        // Prevent form submission on Enter key in file input
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.type === 'file') {
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -24,8 +24,6 @@ def register(request):
 
 @login_required
 def home(request):
-    prediction = None
-
     if request.method == 'POST':
         form = PDFUploadForm(request.POST, request.FILES)
         if form.is_valid():
@@ -39,7 +37,6 @@ def home(request):
             try:
                 data = extract_statement_data(temp_pdf_path)
 
-                # Rename for model input
                 renamed = {
                     'avg_balance': data['avg_monthly_balance'],
                     'monthly_inflows': data['avg_monthly_inflow'],
@@ -50,14 +47,18 @@ def home(request):
                 result = model.predict(df)[0]
                 prediction = class_map[result]
 
+                os.remove(temp_pdf_path)
+
+                return render(request, 'CreditRiskApp/result.html', {
+                    'prediction': prediction
+                })
+
             except Exception as e:
                 prediction = f"Error: {str(e)}"
-
-            os.remove(temp_pdf_path)
+                return render(request, 'CreditRiskApp/result.html', {
+                    'prediction': prediction
+                })
     else:
         form = PDFUploadForm()
 
-    return render(request, 'CreditRiskApp/upload.html', {
-        'form': form,
-        'prediction': prediction
-    })
+    return render(request, 'CreditRiskApp/upload.html', {'form': form})
