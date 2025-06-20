@@ -1,331 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'CreditRiskApp/styles.css' %}" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Credit Risk Analyzer - Results</title>
-    <meta name="description" content="Credit risk analysis results based on uploaded bank statement" />
-</head>
-<body>
-    <!-- Fixed Top Dashboard -->
-    <div class="top-dashboard">
-        <div class="dashboard-content">
-            <div class="logo-section">
-                <h3>Credit Risk Analyzer</h3>
-            </div>
-            <div class="dashboard-controls">
-                <div class="user-welcome">
-                    <span>👋 Welcome, {{ user.username|default:"User" }}</span>
-                </div>
-                <!-- Theme Toggle -->
-                <div class="theme-toggle">
-                    <span>🌙</span>
-                    <div
-                        class="toggle-switch"
-                        onclick="toggleTheme()"
-                        role="button"
-                        tabindex="0"
-                        aria-label="Toggle dark/light mode"
-                    ></div>
-                    <span>☀️</span>
-                </div>
-                <form method="post" action="{% url 'logout' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-secondary logout-btn">
-                        <span>🚪 Log Out</span>
-                    </button>
-                </form>
+{% extends 'base.html' %}
+
+{% block title %}Credit Risk Analyzer - Results{% endblock %}
+{% block description %}Credit risk analysis results based on uploaded bank statement{% endblock %}
+
+{% block logout_button %}
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">🚪 Logout</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<h1>Credit Risk Analysis Results</h1>
+
+<div class="results-section">
+    <div class="prediction-card">
+        <div class="prediction-header">
+            <h2>📊 Risk Analysis Summary</h2>
+        </div>
+
+        <div class="prediction-content">
+            <div class="risk-level">
+               {% if 'high' in prediction|lower %}
+                <h2 style="color: #e60000 !important; font-size: 3rem; font-weight: 700;">High Risk</h2>
+                {% else %}
+                <h2 style="color: #2ecc71 !important; font-size: 3rem; font-weight: 700;">Low Risk</h2>
+                {% endif %}
             </div>
         </div>
-    </div>
 
-    <div class="main-content">
-        <h1>Credit Risk Analysis Results</h1>
-
-        <div class="results-section">
-            <div class="prediction-card">
-                <div class="prediction-header">
-                    <h2>📊 Risk Analysis Summary</h2>
-                    <div class="analysis-date">
-                        <small>Analyzed on {{ analysis_date|default:"N/A" }}</small>
-                    </div>
-                </div>
-
-                <div class="prediction-content">
-                    <div class="risk-indicator">
-                        <div class="risk-level {{ prediction|lower }}">
-                            {% if 'high' in prediction|lower %}
-                            <h1 style="color: #e60000; font-size: 3rem;">⚠️ High Risk</h1>
-                            {% else %}
-                            <h1 style="color: #2ecc71; font-size: 3rem;">✅ Low Risk</h1>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="prediction-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Risk Level:</span>
-                            <span class="detail-value">{{ prediction }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Confidence:</span>
-                            <span class="detail-value">{{ confidence|default:"85%" }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Analysis Method:</span>
-                            <span class="detail-value">Machine Learning Model</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <form method="get" action="{% url 'home' %}">
-                        <button type="submit" class="btn-secondary">
-                            🔄 Analyze Another Statement
-                        </button>
-                    </form>
-                </div>
-            </div>
+        <div class="action-buttons">
+            <form method="get" action="{% url 'home' %}">
+                <button type="submit" class="btn-secondary">
+                    🔄 Analyze Another Statement
+                </button>
+            </form>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <style>
-        /* Reuse styles for dashboard and main content */
-        .top-dashboard {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-color);
-            z-index: 1000;
-            height: 70px;
-            box-shadow: 0 2px 10px var(--shadow);
+{% block extra_css %}
+<style>
+    .results-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        padding: 20px;
+    }
+
+    .prediction-card {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        max-width: 450px;
+        width: 100%;
+        color: var(--text-primary);
+        text-align: center;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
         }
-
-        .dashboard-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
-            height: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
-        .logo-section h3 {
-            margin: 0;
-            color: var(--accent-primary);
-            font-weight: 700;
-            font-size: 1.4rem;
-        }
+    .prediction-header h2 {
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        font-weight: 700;
+        font-size: 1.5rem;
+    }
 
-        .dashboard-controls {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
+    .analysis-date {
+        margin-bottom: 30px;
+    }
 
-        .user-welcome {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
+    .analysis-date small {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
 
-        .theme-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.2rem;
-        }
+    .prediction-content {
+        margin-bottom: 30px;
+    }
 
-        .toggle-switch {
-            width: 50px;
-            height: 25px;
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            position: relative;
-            cursor: pointer;
-            border: 2px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
+    .risk-indicator {
+        margin-bottom: 30px;
+    }
 
-        .toggle-switch::before {
-            content: '';
-            position: absolute;
-            width: 19px;
-            height: 19px;
-            border-radius: 50%;
-            background: var(--text-primary);
-            top: 1px;
-            left: 2px;
-            transition: transform 0.3s ease;
-        }
+    .risk-indicator h1 {
+        margin: 0;
+        font-weight: 700;
+    }
 
-        .toggle-switch.active {
-            background: var(--accent-primary);
-        }
+    .action-buttons {
+        margin-top: 30px;
+    }
 
-        .toggle-switch.active::before {
-            transform: translateX(25px);
-            background: white;
-        }
+    .btn-secondary {
+        background: var(--accent-primary);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .btn-secondary:hover {
+        background: var(--accent-secondary);
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary:active {
+        transform: translateY(0);
+    }
 
-        .logout-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
 
-        .logout-btn:hover {
-            background: var(--accent-primary);
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        .main-content {
-            margin-top: 70px;
-            padding: 40px 20px;
-            min-height: calc(100vh - 70px);
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: center;
+    @media (max-width: 768px) {
+        .results-section {
+            padding: 20px 15px;
+            min-height: 50vh;
         }
 
         .prediction-card {
-            background: var(--bg-secondary);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px var(--shadow);
-            max-width: 450px;
-            margin: 0 auto;
-            color: var(--text-primary);
+            padding: 30px 20px;
         }
 
         .prediction-header h2 {
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .analysis-date small {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .prediction-content {
-            margin-top: 30px;
+            font-size: 1.3rem;
         }
 
         .risk-indicator h1 {
-            margin: 0 0 20px;
-        }
-
-        .prediction-details {
-            text-align: left;
-            margin-top: 20px;
-        }
-
-        .detail-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .detail-label {
-            color: var(--text-secondary);
-        }
-
-        .detail-value {
-            color: var(--accent-primary);
-        }
-
-        .action-buttons {
-            margin-top: 40px;
+            font-size: 2.5rem !important;
         }
 
         .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 12px 25px;
+            padding: 12px 20px;
             font-size: 1rem;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .prediction-card {
+            padding: 25px 15px;
         }
 
-        .btn-secondary:hover {
-            background: var(--accent-primary);
-            color: white;
-            border-color: var(--accent-primary);
+        .risk-indicator h1 {
+            font-size: 2rem !important;
         }
+    }
+</style>
+{% endblock %}
 
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 30px 15px;
-            }
-            .prediction-card {
-                padding: 30px 20px;
-            }
+{% block extra_js %}
+<script>
+    // Add smooth entrance animation
+    document.addEventListener('DOMContentLoaded', function() {
+        const predictionCard = document.querySelector('.prediction-card');
+        if (predictionCard) {
+            predictionCard.style.opacity = '0';
+            predictionCard.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                predictionCard.style.transition = 'all 0.6s ease-out';
+                predictionCard.style.opacity = '1';
+                predictionCard.style.transform = 'translateY(0)';
+            }, 100);
         }
-    </style>
-
-    <script>
-        // Theme Management (same as upload.html)
-        function toggleTheme() {
-            const body = document.body;
-            const toggle = document.querySelector('.toggle-switch');
-            const currentTheme = body.getAttribute('data-theme');
-
-            if (currentTheme === 'light') {
-                body.setAttribute('data-theme', 'dark');
-                toggle.classList.remove('active');
-                window.currentTheme = 'dark';
-            } else {
-                body.setAttribute('data-theme', 'light');
-                toggle.classList.add('active');
-                window.currentTheme = 'light';
-            }
-        }
-
-        function initTheme() {
-            const body = document.body;
-            const toggle = document.querySelector('.toggle-switch');
-
-            const savedTheme = window.currentTheme || 'dark';
-            body.setAttribute('data-theme', savedTheme);
-            if (savedTheme === 'light') {
-                toggle.classList.add('active');
-            }
-        }
-
-        // Keyboard accessibility for toggle
-        document.addEventListener('DOMContentLoaded', function () {
-            initTheme();
-
-            const toggleSwitch = document.querySelector('.toggle-switch');
-            toggleSwitch.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleTheme();
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

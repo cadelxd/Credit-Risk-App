@@ -126,6 +126,27 @@ h2 {
     font-size: 2rem;
 }
 
+.logout-btn {
+  display: inline-flex;      /* inline-flex so it doesn't take full width */
+  align-items: center;
+  padding: 8px 15px;
+  vertical-align: middle;         /* adjust padding if needed */
+  margin-right: 10px;        /* space to the right if needed */
+  white-space: nowrap;       /* prevent button text wrap */
+  cursor: pointer;
+  font-size: 1rem;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+}
+
+
+.logout-btn:hover {
+    background: var(--accent-secondary);
+    transform: translateY(-2px);
+}
+
 /* Container for forms */
 .form-container {
     background: var(--bg-secondary);
@@ -341,6 +362,18 @@ a {
     font-weight: 600;
     transition: all 0.3s ease;
     position: relative;
+}
+
+.high-risk {
+    color: #e60000;
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.low-risk {
+    color: #2ecc71;
+    font-size: 3rem;
+    font-weight: 700;
 }
 
 a::after {
