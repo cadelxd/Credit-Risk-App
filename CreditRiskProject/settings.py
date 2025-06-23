@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-z=dfhg3dsa#(k=hex%-dk59=vr7t*-j%hap+aa6*7!lqkr1)(!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['https://credit-risk-app-8yzi.onrender.com']
+ALLOWED_HOSTS = ['https://credit-risk-app-8yzi.onrender.com','localhost']
 
 
 # Application definition

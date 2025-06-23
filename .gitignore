@@ -36,7 +36,6 @@ staticfiles/
 .env
 
 # === Model & Data Files ===
-data/model/
 data/extracted_csv/
 data/raw_pdfs/
 
