@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: credit-risk-analyzer
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn CreditRiskProject.wsgi"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: CreditRiskProject.settings
+      - key: SECRET_KEY
+        value: yo@z^=4d9^24os%4+(14c@c)san%@(c4yd*&k=2zd9y^vo9ou#
+      - key: GEMINI_API_KEY
+        value: AIzaSyAXOWBuO_tVq1bP4CdMImKWvwH0XbTBVA0
+      - key: DEBUG
+        value: False
