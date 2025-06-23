@@ -24,39 +24,56 @@ def register(request):
 @login_required
 def home(request):
     if request.method == 'POST':
+        print("POST received")
+        print("FILES:", request.FILES.getlist('pdf_file'))
+
         form = PDFUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            uploaded_file = request.FILES['pdf_file']
+        uploaded_files = request.FILES.getlist('pdf_file')
 
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-                for chunk in uploaded_file.chunks():
-                    temp_pdf.write(chunk)
-                temp_pdf_path = temp_pdf.name
+        if uploaded_files:
+            summaries = []
 
-            try:
-                data = extract_statement_data(temp_pdf_path)
+            for uploaded_file in uploaded_files:
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+                        for chunk in uploaded_file.chunks():
+                            temp_pdf.write(chunk)
+                        temp_pdf_path = temp_pdf.name
 
-                renamed = {
-                    'avg_balance': data['avg_monthly_balance'],
-                    'monthly_inflows': data['avg_monthly_inflow'],
-                    'monthly_outflows': data['avg_monthly_outflow']
+                    summary = extract_statement_data(temp_pdf_path)
+                    summaries.append(summary)
+                    os.remove(temp_pdf_path)
+
+                except Exception as e:
+                    return render(request, 'CreditRiskApp/result.html', {
+                        'prediction': f"Error processing {uploaded_file.name}: {str(e)}"
+                    })
+
+            if summaries:
+                df = pd.DataFrame(summaries)
+                aggregated = {
+                    'avg_balance': df['avg_monthly_balance'].mean(),
+                    'monthly_inflows': df['avg_monthly_inflow'].mean(),
+                    'monthly_outflows': df['avg_monthly_outflow'].mean()
                 }
+
                 model = joblib.load('data/model/xgb_credit_risk_model.joblib')
-                df = pd.DataFrame([renamed])
-                result = model.predict(df)[0]
+                result = model.predict(pd.DataFrame([aggregated]))[0]
                 prediction = class_map[result]
 
-                os.remove(temp_pdf_path)
-
                 return render(request, 'CreditRiskApp/result.html', {
                     'prediction': prediction
                 })
 
-            except Exception as e:
-                prediction = f"Error: {str(e)}"
-                return render(request, 'CreditRiskApp/result.html', {
-                    'prediction': prediction
-                })
+            return render(request, 'CreditRiskApp/result.html', {
+                'prediction': "⚠️ No valid data extracted from PDFs."
+            })
+
+        return render(request, 'CreditRiskApp/upload.html', {
+            'form': form,
+            'error': "Please upload at least one valid PDF."
+        })
+
     else:
         form = PDFUploadForm()
 

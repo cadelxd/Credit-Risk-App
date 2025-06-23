@@ -8,6 +8,9 @@
     <button type="submit" class="logout-btn">⏻</button>
 </form>
 {% endblock %}
+{% if error %}
+    <div class="error-message">{{ error }}</div>
+{% endif %}
 
 {% block content %}
 <h1>Credit Risk Analysis</h1>
@@ -25,7 +28,7 @@
             <div class="form-group">
                 <label for="id_pdf_file">Select Bank Statement</label>
                 <div class="file-upload-area" id="fileUploadArea">
-                    <input type="file" name="pdf_file" id="id_pdf_file" accept="application/pdf" required>
+                    <input type="file" name="pdf_file" id="id_pdf_file" accept="application/pdf" multiple>
                     <div class="file-upload-content">
                         <div class="file-upload-icon">📁</div>
                         <div class="file-upload-text">
@@ -38,11 +41,6 @@
                 </div>
             
                 <div class="file-preview" id="filePreview" style="display: none;">
-                    <div class="file-info">
-                        <span class="file-name" id="fileName"></span>
-                        <span class="file-size" id="fileSize"></span>
-                        <button type="button" class="remove-file" onclick="removeFile()">✕</button>
-                    </div>
                     <div class="upload-progress" id="uploadProgress">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill"></div>
@@ -165,17 +163,23 @@
 
     .file-info {
         display: flex;
-        justify-content: space-between;
+        justify-content: space-between; /* Space between name and right section */
         align-items: center;
         margin-bottom: 15px;
     }
 
     .file-name {
-        font-weight: 600;
-        color: var(--text-primary);
+        flex-grow: 1; /* Let name take all available space */
+        white-space: nowrap; /* Prevent wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Add ... if name is too long */
+        margin-right: 15px; /* Space between name and size */
     }
 
     .file-size {
+        flex-shrink: 0; /* Prevent shrinking */
+        white-space: nowrap; /* Keep file size in one line */
+        margin-right: 10px; /* Space between size and remove button */
         color: var(--text-secondary);
         font-size: 0.9rem;
     }
@@ -386,7 +390,7 @@
 
         // File input change event
         fileInput.addEventListener('change', function(e) {
-            handleFileSelect(e.target.files[0]);
+            handleFileSelect(e.target.files);
         });
 
         // Drag and drop events
@@ -405,29 +409,70 @@
             fileUploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                handleFileSelect(files[0]);
+                handleFileSelect(files);
                 fileInput.files = files;
             }
         });
 
-        function handleFileSelect(file) {
-            if (!file) return;
+        function handleFileSelect(files) {
+            if (!files || files.length === 0) return;
 
-            // Validate file type
-            if (file.type !== 'application/pdf') {
-                showError('Please select a PDF file only.');
-                return;
+            filePreview.innerHTML = '';  // Clear previous preview
+            let valid = true;
+
+            Array.from(files).forEach(file => {
+                if (file.type !== 'application/pdf') {
+                    showError('Only PDF files are allowed.');
+                    valid = false;
+                    return;
+                }
+            
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+            
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'file-name';
+                nameSpan.textContent = file.name;
+            
+                const sizeSpan = document.createElement('span');
+                sizeSpan.className = 'file-size';
+                sizeSpan.textContent = formatFileSize(file.size);
+            
+                // Create remove button
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-file';
+                removeBtn.textContent = '✕';
+            
+                // Remove file preview and clear input if no files left
+                removeBtn.addEventListener('click', () => {
+                    fileInfo.remove();
+                
+                    // If no previews left, hide preview area and disable analyze button
+                    if (filePreview.children.length === 0) {
+                        const fileInput = document.querySelector('input[type="file"]');
+                        fileInput.value = '';
+                        analyzeBtn.disabled = true;
+                        filePreview.style.display = 'none';
+                    }
+                });
+            
+                fileInfo.appendChild(nameSpan);
+                fileInfo.appendChild(sizeSpan);
+                fileInfo.appendChild(removeBtn);  // Append remove button here
+                filePreview.appendChild(fileInfo);
+            });
+        
+            if (valid) {
+                filePreview.style.display = 'block';
+                analyzeBtn.disabled = false;
+                simulateUploadProgress();
+            } else {
+                analyzeBtn.disabled = true;
             }
-
-            // Show file info
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            filePreview.style.display = 'block';
-            analyzeBtn.disabled = false;
-
-            // Simulate upload progress
-            simulateUploadProgress();
         }
+
+
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';

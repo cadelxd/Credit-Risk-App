@@ -1,33 +1,41 @@
 import os
-import pandas as pd
+import json
 from pdf_parser.extract_data import extract_statement_data
 
 RAW_PDF_DIR = "data/raw_pdfs"
-OUTPUT_CSV_DIR = "data/extracted_csv"
-os.makedirs(OUTPUT_CSV_DIR, exist_ok=True)
+OUTPUT_JSON_PATH = "data/extracted_csv/combined_output.json"
 
-def process_pdf(pdf_path):
-    print(f"\nProcessing {os.path.basename(pdf_path)} ...")
-    try:
-        summary = extract_statement_data(pdf_path)
+def process_all_pdfs():
+    combined_data = []
 
-        summary_df = pd.DataFrame([{
-            'avg_balance': summary['avg_monthly_balance'],
-            'monthly_inflows': summary['avg_monthly_inflow'],
-            'monthly_outflows': summary['avg_monthly_outflow']
-        }])
-
-        output_csv_path = os.path.join(
-            OUTPUT_CSV_DIR,
-            os.path.splitext(os.path.basename(pdf_path))[0] + ".csv"
-        )
-        summary_df.to_csv(output_csv_path, index=False)
-
-        print("Success")
-    except Exception as e:
-        print(f"Failed {os.path.basename(pdf_path)}: {e}")
-
-if __name__ == "__main__":
     for filename in os.listdir(RAW_PDF_DIR):
         if filename.lower().endswith(".pdf"):
-            process_pdf(os.path.join(RAW_PDF_DIR, filename))
+            pdf_path = os.path.join(RAW_PDF_DIR, filename)
+            print(f"\nProcessing {filename} ...")
+
+            try:
+                summary = extract_statement_data(pdf_path)
+
+                combined_data.append({
+                    'filename': filename,
+                    'avg_monthly_balance': summary['avg_monthly_balance'],
+                    'avg_monthly_inflow': summary['avg_monthly_inflow'],
+                    'avg_monthly_outflow': summary['avg_monthly_outflow']
+                })
+
+                print("Success")
+
+            except Exception as e:
+                print(f"Failed {filename}: {e}")
+
+    return combined_data
+
+if __name__ == "__main__":
+    os.makedirs(os.path.dirname(OUTPUT_JSON_PATH), exist_ok=True)
+    results = process_all_pdfs()
+
+    # Save to JSON file
+    with open(OUTPUT_JSON_PATH, 'w') as json_file:
+        json.dump(results, json_file, indent=4)
+
+    print(f"\nAll results saved to {OUTPUT_JSON_PATH}")
