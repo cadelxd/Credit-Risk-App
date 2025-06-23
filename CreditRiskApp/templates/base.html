@@ -20,7 +20,7 @@
     <div class="top-dashboard">
         <div class="dashboard-content">
             <div class="logo-section">
-                <h3>Credit Risk Analyzer</h3>
+                <h3>Credit Risk<br>Analyzer</h3>
             </div>
             
             <!-- Center Theme Toggle -->
@@ -173,7 +173,7 @@
             const body = document.body;
             const toggle = document.querySelector('.toggle-switch');
             const currentTheme = body.getAttribute('data-theme');
-        
+
             if (currentTheme === 'light') {
                 body.setAttribute('data-theme', 'dark');
                 toggle.classList.remove('active');
@@ -184,26 +184,26 @@
                 localStorage.setItem('theme', 'light');
             }
         }
-    
+
         // Initialize theme from localStorage or default to dark
         function initTheme() {
             const body = document.body;
             const toggle = document.querySelector('.toggle-switch');
-        
+
             const savedTheme = localStorage.getItem('theme') || 'dark';
             body.setAttribute('data-theme', savedTheme);
-        
+
             if (savedTheme === 'light') {
                 toggle.classList.add('active');
             } else {
                 toggle.classList.remove('active');
             }
         }
-    
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
-        
+
             // Keyboard accessibility for toggle
             document.querySelector('.toggle-switch').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' || e.key === ' ') {
