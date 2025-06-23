@@ -8,7 +8,6 @@ import joblib
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
-model = joblib.load('data/model/xgb_credit_risk_model.joblib')
 class_map = {0: 'Low Risk', 1: 'High Risk'}
 
 def register(request):
@@ -42,7 +41,7 @@ def home(request):
                     'monthly_inflows': data['avg_monthly_inflow'],
                     'monthly_outflows': data['avg_monthly_outflow']
                 }
-
+                model = joblib.load('data/model/xgb_credit_risk_model.joblib')
                 df = pd.DataFrame([renamed])
                 result = model.predict(df)[0]
                 prediction = class_map[result]
