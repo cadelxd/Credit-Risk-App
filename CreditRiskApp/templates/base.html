@@ -168,39 +168,42 @@
 
     <!-- JavaScript -->
     <script>
-        // Theme Management
+        // Theme Management with localStorage persistence
         function toggleTheme() {
             const body = document.body;
             const toggle = document.querySelector('.toggle-switch');
             const currentTheme = body.getAttribute('data-theme');
-            
+        
             if (currentTheme === 'light') {
                 body.setAttribute('data-theme', 'dark');
                 toggle.classList.remove('active');
-                window.currentTheme = 'dark';
+                localStorage.setItem('theme', 'dark');
             } else {
                 body.setAttribute('data-theme', 'light');
                 toggle.classList.add('active');
-                window.currentTheme = 'light';
+                localStorage.setItem('theme', 'light');
             }
         }
-
-        // Initialize theme
+    
+        // Initialize theme from localStorage or default to dark
         function initTheme() {
             const body = document.body;
             const toggle = document.querySelector('.toggle-switch');
-            
-            const savedTheme = window.currentTheme || 'dark';
+        
+            const savedTheme = localStorage.getItem('theme') || 'dark';
             body.setAttribute('data-theme', savedTheme);
+        
             if (savedTheme === 'light') {
                 toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
             }
         }
-
+    
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             initTheme();
-            
+        
             // Keyboard accessibility for toggle
             document.querySelector('.toggle-switch').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -210,6 +213,7 @@
             });
         });
     </script>
+
 
     {% block extra_js %}{% endblock %}
 </body>
