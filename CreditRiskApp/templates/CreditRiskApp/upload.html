@@ -14,7 +14,6 @@
 
 {% block content %}
 <h1>Credit Risk Analysis</h1>
-
 <div class="upload-section">
     <div class="form-container">
         <div class="upload-header">
@@ -49,6 +48,22 @@
                     </div>
                 </div>
             </div>
+            <div class="upload-header">
+                <h2>📝 Manual Entry</h2>
+                <p>Optional</p>
+            </div>    
+            <div class="form-group">
+                <label for="id_avg_balance">Average Monthly Balance</label>
+                <input type="number" name="avg_balance" id="id_avg_balance">
+            </div>
+            <div class="form-group">
+                <label for="id_avg_inflow">Average Monthly Inflow</label>
+                <input type="number" name="avg_inflow" id="id_avg_inflow">
+            </div>
+            <div class="form-group">
+                <label for="id_avg_outflow">Average Monthly Outflow</label>
+                <input type="number" name="avg_outflow" id="id_avg_outflow">
+            </div>            
 
             <button type="submit" id="analyzeBtn" disabled>
                 <span class="btn-text">🔍 Analyze Credit Risk</span>
@@ -56,9 +71,12 @@
         </form>
     </div>
 </div>
+
+
 {% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
     .upload-section {
         display: grid;
@@ -75,6 +93,22 @@
         border-radius: 20px;
         box-shadow: 0 10px 30px var(--shadow);
         transition: all 0.3s ease;
+    }
+
+    input[type="number"] {
+        background-color: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: var(--text-primary);
+        width: 100%;
+        font-size: 1rem;
+        transition: border 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+        border-color: var(--accent-primary);
+        outline: none;
     }
 
     .form-container.focused {
@@ -104,10 +138,10 @@
 
     .form-group label {
         display: block;
-        margin-bottom: 15px;
+        margin-bottom: 8px;
         color: var(--text-primary);
         font-weight: 600;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
     }
 
     .file-upload-area {
@@ -167,7 +201,7 @@
         align-items: center;
         margin-bottom: 15px;
     }
-
+    
     .file-name {
         flex-grow: 1; /* Let name take all available space */
         white-space: nowrap; /* Prevent wrapping */
@@ -175,7 +209,7 @@
         text-overflow: ellipsis; /* Add ... if name is too long */
         margin-right: 15px; /* Space between name and size */
     }
-
+    
     .file-size {
         flex-shrink: 0; /* Prevent shrinking */
         white-space: nowrap; /* Keep file size in one line */
@@ -183,7 +217,7 @@
         color: var(--text-secondary);
         font-size: 0.9rem;
     }
-
+    
     .remove-file {
         background: #ff4d4d;
         color: white;
@@ -200,6 +234,7 @@
         padding: 0;
         line-height: 1;
     }
+
 
     .remove-file:hover {
         transform: scale(1.1);
@@ -377,23 +412,18 @@
 
 {% block extra_js %}
 <script>
-    // File Upload Functionality
     function setupFileUpload() {
         const fileInput = document.querySelector('input[type="file"]');
         const fileUploadArea = document.getElementById('fileUploadArea');
         const filePreview = document.getElementById('filePreview');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
         const analyzeBtn = document.getElementById('analyzeBtn');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
 
-        // File input change event
         fileInput.addEventListener('change', function(e) {
             handleFileSelect(e.target.files);
         });
 
-        // Drag and drop events
         fileUploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
             fileUploadArea.classList.add('dragover');
@@ -417,7 +447,7 @@
         function handleFileSelect(files) {
             if (!files || files.length === 0) return;
 
-            filePreview.innerHTML = '';  // Clear previous preview
+            filePreview.innerHTML = '';
             let valid = true;
 
             Array.from(files).forEach(file => {
@@ -426,53 +456,55 @@
                     valid = false;
                     return;
                 }
-            
+
                 const fileInfo = document.createElement('div');
                 fileInfo.className = 'file-info';
-            
+
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'file-name';
                 nameSpan.textContent = file.name;
-            
+
                 const sizeSpan = document.createElement('span');
                 sizeSpan.className = 'file-size';
                 sizeSpan.textContent = formatFileSize(file.size);
-            
-                // Create remove button
+
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'remove-file';
                 removeBtn.textContent = '✕';
-            
-                // Remove file preview and clear input if no files left
+
                 removeBtn.addEventListener('click', () => {
                     fileInfo.remove();
-                
-                    // If no previews left, hide preview area and disable analyze button
+                    fileInput.value = '';
                     if (filePreview.children.length === 0) {
-                        const fileInput = document.querySelector('input[type="file"]');
-                        fileInput.value = '';
                         analyzeBtn.disabled = true;
                         filePreview.style.display = 'none';
                     }
                 });
-            
+
                 fileInfo.appendChild(nameSpan);
                 fileInfo.appendChild(sizeSpan);
-                fileInfo.appendChild(removeBtn);  // Append remove button here
+                fileInfo.appendChild(removeBtn);
                 filePreview.appendChild(fileInfo);
             });
-        
+
             if (valid) {
                 filePreview.style.display = 'block';
-                analyzeBtn.disabled = false;
                 simulateUploadProgress();
-            } else {
-                analyzeBtn.disabled = true;
             }
+
+            checkAnalyzeButtonState();
         }
 
+        function simulateUploadProgress() {
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Preparing file...';
 
+            setTimeout(() => {
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Ready to analyze';
+            }, 500);
+        }
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
@@ -482,60 +514,75 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        function simulateUploadProgress() {
-            progressFill.style.width = '0%';
-            progressText.textContent = 'Preparing file...';
-            
-            setTimeout(() => {
-                progressFill.style.width = '100%';
-                progressText.textContent = 'Ready to analyze';
-            }, 500);
+        function checkAnalyzeButtonState() {
+            const avgBalance = document.getElementById('id_avg_balance').value.trim();
+            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
+            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
+            const fileUploaded = fileInput.files.length > 0;
+
+            if (
+                (avgBalance !== '' && avgInflow !== '' && avgOutflow !== '') ||
+                fileUploaded
+            ) {
+                analyzeBtn.disabled = false;
+            } else {
+                analyzeBtn.disabled = true;
+            }
         }
 
         function showError(message) {
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
             errorDiv.innerHTML = `⚠️ ${message}`;
-            
-            // Remove existing error messages
+
             const existingError = fileUploadArea.parentNode.querySelector('.error-message');
             if (existingError) {
                 existingError.remove();
             }
-            
+
             fileUploadArea.parentNode.insertBefore(errorDiv, fileUploadArea);
             fileUploadArea.classList.add('shake');
-            
+
             setTimeout(() => {
                 fileUploadArea.classList.remove('shake');
                 errorDiv.remove();
             }, 3000);
         }
+
+        // Watch manual input changes
+        ['id_avg_balance', 'id_avg_inflow', 'id_avg_outflow'].forEach(id => {
+            document.getElementById(id).addEventListener('input', checkAnalyzeButtonState);
+        });
     }
 
-    // Remove file function
     function removeFile() {
         const fileInput = document.querySelector('input[type="file"]');
         const filePreview = document.getElementById('filePreview');
         const analyzeBtn = document.getElementById('analyzeBtn');
-        
+
         fileInput.value = '';
         filePreview.style.display = 'none';
         analyzeBtn.disabled = true;
     }
 
-    // Form submission handling
     function setupFormSubmission() {
         const uploadForm = document.getElementById('uploadForm');
         const analyzeBtn = document.getElementById('analyzeBtn');
-        
+
         uploadForm.addEventListener('submit', function(e) {
             const btnText = analyzeBtn.querySelector('.btn-text');
             const fileInput = document.querySelector('input[type="file"]');
-            
-            if (!fileInput.files.length) {
+
+            const avgBalance = document.getElementById('id_avg_balance').value.trim();
+            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
+            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
+
+            const isManualFilled = avgBalance !== '' && avgInflow !== '' && avgOutflow !== '';
+            const isFileUploaded = fileInput && fileInput.files.length > 0;
+
+            if (!isManualFilled && !isFileUploaded) {
                 e.preventDefault();
-                showFormError('Please select a file to analyze.');
+                showFormError('Please upload a PDF or fill all manual fields.');
                 return;
             }
 
@@ -548,55 +595,31 @@
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message';
             errorDiv.innerHTML = `⚠️ ${message}`;
-            
+
             const formContainer = document.querySelector('.form-container');
             const existingError = formContainer.querySelector('.error-message');
             if (existingError) {
                 existingError.remove();
             }
-            
+
             formContainer.insertBefore(errorDiv, uploadForm);
-            
+
             setTimeout(() => {
                 errorDiv.remove();
             }, 3000);
         }
     }
 
-    // Action button function
-    function analyzeAnother() {
-        removeFile();
-        const resultsSection = document.querySelector('.results-section');
-        if (resultsSection) {
-            resultsSection.style.opacity = '0';
-            setTimeout(() => {
-                resultsSection.style.display = 'none';
-            }, 300);
-        }
-        
-        document.querySelector('.upload-section').scrollIntoView({ 
-            behavior: 'smooth' 
-        });
-    }
-
-    // Enhanced interactions
     function setupEnhancedInteractions() {
         const formContainer = document.querySelector('.form-container');
-        
         const inputs = document.querySelectorAll('input, button');
-        inputs.forEach(input => {
-            input.addEventListener('focus', function() {
-                formContainer.classList.add('focused');
-            });
-            
-            input.addEventListener('blur', function() {
-                formContainer.classList.remove('focused');
-            });
-        });
 
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => formContainer.classList.add('focused'));
+            input.addEventListener('blur', () => formContainer.classList.remove('focused'));
+        });
     }
 
-    // Initialize everything
     document.addEventListener('DOMContentLoaded', function() {
         setupFileUpload();
         setupFormSubmission();

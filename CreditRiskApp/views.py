@@ -29,10 +29,27 @@ def home(request):
 
         form = PDFUploadForm(request.POST, request.FILES)
         uploaded_files = request.FILES.getlist('pdf_file')
+        summaries = []
 
+        # --- Manual Inputs ---
+        manual_data = {}
+        try:
+            avg_balance = request.POST.get('avg_balance')
+            avg_inflow = request.POST.get('avg_inflow')
+            avg_outflow = request.POST.get('avg_outflow')
+
+            if avg_balance and avg_inflow and avg_outflow:
+                manual_data = {
+                    'avg_monthly_balance': float(avg_balance),
+                    'avg_monthly_inflow': float(avg_inflow),
+                    'avg_monthly_outflow': float(avg_outflow)
+                }
+        except ValueError:
+            messages.error(request, "⚠️ Manual inputs must be valid numbers.")
+            return render(request, 'CreditRiskApp/upload.html', {'form': form})
+
+        # --- Process Uploaded PDFs ---
         if uploaded_files:
-            summaries = []
-
             for uploaded_file in uploaded_files:
                 try:
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
@@ -46,35 +63,42 @@ def home(request):
 
                 except Exception as e:
                     return render(request, 'CreditRiskApp/result.html', {
-                        'prediction': f"Error processing {uploaded_file.name}: {str(e)}"
+                        'prediction': f"⚠️ Error processing {uploaded_file.name}: {str(e)}"
                     })
 
-            if summaries:
-                df = pd.DataFrame(summaries)
-                aggregated = {
-                    'avg_balance': df['avg_monthly_balance'].mean(),
-                    'monthly_inflows': df['avg_monthly_inflow'].mean(),
-                    'monthly_outflows': df['avg_monthly_outflow'].mean()
-                }
+        # --- Combine Sources ---
+        data_sources = []
+        if manual_data:
+            data_sources.append(manual_data)
+        if summaries:
+            data_sources.extend(summaries)
 
-                model = joblib.load('data/model/xgb_credit_risk_model.joblib')
-                result = model.predict(pd.DataFrame([aggregated]))[0]
-                prediction = class_map[result]
-
-                return render(request, 'CreditRiskApp/result.html', {
-                    'prediction': prediction
-                })
-
-            return render(request, 'CreditRiskApp/result.html', {
-                'prediction': "⚠️ No valid data extracted from PDFs."
+        if not data_sources:
+            return render(request, 'CreditRiskApp/upload.html', {
+                'form': form,
+                'error': "Please provide either manual input, upload a valid PDF, or both."
             })
 
-        return render(request, 'CreditRiskApp/upload.html', {
-            'form': form,
-            'error': "Please upload at least one valid PDF."
+        # --- Aggregate Data ---
+        df = pd.DataFrame(data_sources)
+        aggregated = {
+            'avg_balance': df['avg_monthly_balance'].mean(),
+            'monthly_inflows': df['avg_monthly_inflow'].mean(),
+            'monthly_outflows': df['avg_monthly_outflow'].mean()
+        }
+
+        # --- Predict with Model ---
+        model = joblib.load('data/model/xgb_credit_risk_model.joblib')
+        result = model.predict(pd.DataFrame([aggregated]))[0]
+        prediction = class_map[result]
+
+        return render(request, 'CreditRiskApp/result.html', {
+            'prediction': prediction,
+            'aggregated': aggregated,
+            'used_manual': bool(manual_data),
+            'used_upload': bool(summaries)
         })
 
     else:
         form = PDFUploadForm()
-
-    return render(request, 'CreditRiskApp/upload.html', {'form': form})
+        return render(request, 'CreditRiskApp/upload.html', {'form': form})
