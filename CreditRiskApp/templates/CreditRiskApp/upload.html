@@ -1,0 +1,747 @@
+{% extends 'base.html' %}
+
+{% block title %}Credit Risk Analyzer{% endblock %}
+{% block description %}Analyze bank statements for credit risk assessment{% endblock %}
+{% block logout_button %}
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">⏻</button>
+</form>
+{% endblock %}
+{% if error %}
+    <div class="error-message">{{ error }}</div>
+{% endif %}
+
+{% block content %}
+<h1>Credit Risk Analysis</h1>
+<div class="upload-section">
+    <div class="form-container">
+        <div class="collapsible-box">
+            <div class="upload-header collapsible-header" data-target="upload-form">
+                <div class="header-content">
+                    <h3>📄 Upload Bank Statement</h3>
+                </div>
+                <span class="arrow">▶</span>
+            </div>
+
+            <div class="collapsible-content" id="upload-form">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="id_pdf_file">Select Bank Statement</label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <input type="file" name="pdf_file" id="id_pdf_file" accept="application/pdf" multiple>
+                            <div class="file-upload-content">
+                                <div class="file-upload-icon">📁</div>
+                                <div class="file-upload-text">
+                                    <strong>Click to browse</strong> or drag and drop your PDF file here
+                                </div>
+                                <div class="file-upload-hint">
+                                    Supported format: PDF only
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <div class="file-preview" id="filePreview" style="display: none;">
+                            <div class="upload-progress" id="uploadProgress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <span class="progress-text" id="progressText">Ready to analyze</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="collapsible-box">
+            <div class="upload-header collapsible-header" data-target="manual-form">
+                <div class="header-content">
+                    <h3>📝 Manual Entry</h3>
+                </div>
+                <span class="arrow">▶</span>
+            </div>
+
+            <div class="collapsible-content" id="manual-form">
+                <form id="manualForm">
+                    <div class="form-group">
+                        <label for="id_avg_balance">Average Monthly Balance</label>
+                        <input type="number" name="avg_balance" id="id_avg_balance">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_avg_inflow">Average Monthly Inflow</label>
+                        <input type="number" name="avg_inflow" id="id_avg_inflow">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_avg_outflow">Average Monthly Outflow</label>
+                        <input type="number" name="avg_outflow" id="id_avg_outflow">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <button type="submit" id="analyzeBtn" form="uploadForm" disabled>
+            <span class="btn-text">🔍 Analyze Credit Risk</span>
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .upload-section {
+        display: grid;
+        gap: 30px;
+        margin-top: 20px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .form-container {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        transition: all 0.3s ease;
+    }
+
+    input[type="number"] {
+        background-color: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: var(--text-primary);
+        width: 100%;
+        font-size: 1rem;
+        transition: border 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+        border-color: var(--accent-primary);
+        outline: none;
+    }
+
+    .form-container.focused {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--shadow);
+    }
+
+    .collapsible-box {
+        padding-bottom: 0;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 5px 15px var(--shadow);
+        margin-bottom: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+
+    .collapsible-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        margin-bottom: 15px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        margin-bottom: 0px;
+        background: var(--bg-tertiary);
+        transition: all 0.3s ease;
+    }
+
+    .collapsible-header:hover {
+        background: var(--bg-secondary);
+        border-color: var(--accent-primary);
+    }
+
+    .header-content {
+        flex: 1;
+    }
+
+    .collapse-arrow {
+        margin-left: 15px;
+    }
+
+    .arrow {
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+        color: var(--text-secondary);
+        transform: rotate(0deg);
+    }
+
+    .collapsible-header.expanded .arrow {
+        transform: rotate(90deg); /* ▼ down */
+    }
+
+    .collapsible-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+        margin-bottom: 0px;
+        padding: 0;
+        border-top: none;
+        background: var(--bg-secondary);
+    }
+
+    .collapsible-content.expanded {
+        max-height: 1000px;
+        padding: 20px;
+        margin-bottom: 0px;
+        border-top: 1px solid var(--border-color);
+        transition: max-height 0.3s ease-in, padding 0.3s ease-in;
+    }
+
+    .upload-header {
+        text-align: left;
+        margin-bottom: 0px;
+    }
+
+    .upload-header h2 {
+        color: var(--text-primary);
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .upload-header p {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 30px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .file-upload-area {
+        position: relative;
+        border: 2px dashed var(--border-color);
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        background: var(--bg-tertiary);
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .file-upload-area:hover {
+        border-color: var(--accent-primary);
+        background: var(--bg-secondary);
+    }
+
+    .file-upload-area.dragover {
+        border-color: var(--accent-primary);
+        background: var(--bg-secondary);
+        transform: scale(1.02);
+    }
+
+    .file-upload-content {
+        pointer-events: none;
+    }
+
+    .file-upload-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        opacity: 0.7;
+    }
+
+    .file-upload-text {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        color: var(--text-primary);
+    }
+
+    .file-upload-hint {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .file-preview {
+        margin-top: 15px;
+        padding: 20px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .file-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .file-name {
+        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-right: 15px;
+    }
+    
+    .file-size {
+        flex-shrink: 0;
+        white-space: nowrap;
+        margin-right: 10px;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .remove-file {
+        background: #ff4d4d;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .remove-file:hover {
+        transform: scale(1.1);
+        background: #e60000;
+    }
+
+    .upload-progress {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--bg-tertiary);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--accent-primary);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    #analyzeBtn {
+        width: 100%;
+        padding: 15px;
+        background: var(--accent-primary);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    #analyzeBtn:hover:not(:disabled) {
+        background: var(--accent-secondary);
+        transform: translateY(-2px);
+    }
+
+    #analyzeBtn:disabled {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 12px 25px;
+        font-size: 1rem;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        background: var(--accent-primary);
+        color: white;
+        border-color: var(--accent-primary);
+    }
+
+    .prediction-card {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        max-width: 450px;
+        margin: 0 auto;
+        color: var(--text-primary);
+        text-align: center;
+    }
+
+    .prediction-header h2 {
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+
+    .analysis-date small {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .prediction-content {
+        margin-top: 30px;
+    }
+
+    .risk-indicator h1 {
+        margin: 0 0 20px;
+    }
+
+    .prediction-details {
+        text-align: left;
+        margin-top: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .detail-label {
+        color: var(--text-secondary);
+    }
+
+    .detail-value {
+        color: var(--accent-primary);
+    }
+
+    .action-buttons {
+        margin-top: 40px;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .loading .btn-text {
+        animation: pulse 1.5s infinite;
+    }
+
+    .shake {
+        animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    .error-message {
+        background: #ff4d4d;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 30px 20px;
+        }
+
+        .file-upload-area {
+            padding: 30px 15px;
+        }
+
+        .file-upload-icon {
+            font-size: 2.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function setupCollapsibleSections() {
+        const headers = document.querySelectorAll('.collapsible-header');
+        
+        headers.forEach(header => {
+            header.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+            
+                this.classList.toggle('expanded');
+                content.classList.toggle('expanded');
+            });
+        });
+    }
+    
+    function setupFileUpload() {
+        const fileInput = document.querySelector('input[type="file"]');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const filePreview = document.getElementById('filePreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+
+        fileInput.addEventListener('change', function(e) {
+            handleFileSelect(e.target.files);
+        });
+
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files);
+                fileInput.files = files;
+            }
+        });
+
+        function handleFileSelect(files) {
+            if (!files || files.length === 0) return;
+
+            filePreview.innerHTML = '';
+            let valid = true;
+
+            Array.from(files).forEach(file => {
+                if (file.type !== 'application/pdf') {
+                    showError('Only PDF files are allowed.');
+                    valid = false;
+                    return;
+                }
+
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'file-name';
+                nameSpan.textContent = file.name;
+
+                const sizeSpan = document.createElement('span');
+                sizeSpan.className = 'file-size';
+                sizeSpan.textContent = formatFileSize(file.size);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-file';
+                removeBtn.textContent = '✕';
+
+                removeBtn.addEventListener('click', () => {
+                    fileInfo.remove();
+                    fileInput.value = '';
+                    if (filePreview.children.length === 0) {
+                        analyzeBtn.disabled = true;
+                        filePreview.style.display = 'none';
+                    }
+                });
+
+                fileInfo.appendChild(nameSpan);
+                fileInfo.appendChild(sizeSpan);
+                fileInfo.appendChild(removeBtn);
+                filePreview.appendChild(fileInfo);
+            });
+
+            if (valid) {
+                filePreview.style.display = 'block';
+                simulateUploadProgress();
+            }
+
+            checkAnalyzeButtonState();
+        }
+
+        function simulateUploadProgress() {
+            progressFill.style.width = '0%';
+            progressText.textContent = 'Preparing file...';
+
+            setTimeout(() => {
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Ready to analyze';
+            }, 500);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function checkAnalyzeButtonState() {
+            const avgBalance = document.getElementById('id_avg_balance').value.trim();
+            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
+            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
+            const fileUploaded = fileInput.files.length > 0;
+
+            if (
+                (avgBalance !== '' && avgInflow !== '' && avgOutflow !== '') ||
+                fileUploaded
+            ) {
+                analyzeBtn.disabled = false;
+            } else {
+                analyzeBtn.disabled = true;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `⚠️ ${message}`;
+
+            const existingError = fileUploadArea.parentNode.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            fileUploadArea.parentNode.insertBefore(errorDiv, fileUploadArea);
+            fileUploadArea.classList.add('shake');
+
+            setTimeout(() => {
+                fileUploadArea.classList.remove('shake');
+                errorDiv.remove();
+            }, 3000);
+        }
+
+        // Watch manual input changes
+        ['id_avg_balance', 'id_avg_inflow', 'id_avg_outflow'].forEach(id => {
+            document.getElementById(id).addEventListener('input', checkAnalyzeButtonState);
+        });
+    }
+
+    function removeFile() {
+        const fileInput = document.querySelector('input[type="file"]');
+        const filePreview = document.getElementById('filePreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        fileInput.value = '';
+        filePreview.style.display = 'none';
+        analyzeBtn.disabled = true;
+    }
+
+    function setupFormSubmission() {
+        const uploadForm = document.getElementById('uploadForm');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+
+        analyzeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const btnText = analyzeBtn.querySelector('.btn-text');
+            const fileInput = document.querySelector('input[type="file"]');
+
+            const avgBalance = document.getElementById('id_avg_balance').value.trim();
+            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
+            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
+
+            const isManualFilled = avgBalance !== '' && avgInflow !== '' && avgOutflow !== '';
+            const isFileUploaded = fileInput && fileInput.files.length > 0;
+
+            if (!isManualFilled && !isFileUploaded) {
+                showFormError('Please upload a PDF or fill all manual fields.');
+                return;
+            }
+
+            // Create form data
+            const formData = new FormData();
+            
+            if (isFileUploaded) {
+                Array.from(fileInput.files).forEach(file => {
+                    formData.append('pdf_file', file);
+                });
+            }
+            
+            if (isManualFilled) {
+                formData.append('avg_balance', avgBalance);
+                formData.append('avg_inflow', avgInflow);
+                formData.append('avg_outflow', avgOutflow);
+            }
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            formData.append('csrfmiddlewaretoken', csrfToken);
+
+            analyzeBtn.classList.add('loading');
+            btnText.textContent = '🔄 Analyzing...';
+            analyzeBtn.disabled = true;
+            
+            // Submit the form
+            uploadForm.submit();
+        });
+
+        function showFormError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `⚠️ ${message}`;
+
+            const formContainer = document.querySelector('.form-container');
+            const existingError = formContainer.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            formContainer.insertBefore(errorDiv, formContainer.firstChild);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 3000);
+        }
+    }
+
+    function setupEnhancedInteractions() {
+        const formContainer = document.querySelector('.form-container');
+        const inputs = document.querySelectorAll('input, button');
+
+        inputs.forEach(input => {
+            input.addEventListener('focus', () => formContainer.classList.add('focused'));
+            input.addEventListener('blur', () => formContainer.classList.remove('focused'));
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupCollapsibleSections();
+        setupFileUpload();
+        setupFormSubmission();
+        setupEnhancedInteractions();
+    });
+</script>
+{% endblock %}

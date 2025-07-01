@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'CreditRiskApp/styles.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <title>{% block title %}Credit Risk Analyzer{% endblock %}</title>
+    <meta name="description" content="{% block description %}Advanced financial risk assessment platform{% endblock %}">
+    
+    {% block extra_head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Fixed Top Dashboard -->
+    <div class="top-dashboard">
+        <div class="dashboard-content">
+            <div class="logo-section">
+                <h3>Credit Risk<br>Analyzer</h3>
+            </div>
+            
+            <!-- Center Theme Toggle -->
+            <div class="theme-toggle">
+                <span>🌙</span>
+                <div class="toggle-switch" onclick="toggleTheme()" role="button" tabindex="0" aria-label="Toggle dark/light mode"></div>
+                <span>☀️</span>
+            </div>
+
+            <!-- Right side controls -->
+            <div class="dashboard-controls">
+                {% block logout_button %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Dashboard Styles -->
+    <style>
+        .top-dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            height: 70px;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .dashboard-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .logo-section h3 {
+            margin: 0;
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 25px;
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: var(--text-primary);
+            top: 1px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-primary);
+        }
+
+        .toggle-switch.active::before {
+            transform: translateX(18px);
+            background: white;
+        }
+
+        .dashboard-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .dashboard-controls form {
+            margin: 0;
+        }
+
+        .main-content {
+            margin-top: 70px;
+            padding-top: 40px;
+            min-height: calc(100vh - 70px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-content {
+                padding: 0 15px;
+            }
+            
+            .logo-section h3 {
+                font-size: 1.2rem;
+            }
+            
+            .theme-toggle {
+                font-size: 1rem;
+                gap: 8px;
+            }
+            
+            .toggle-switch {
+                width: 45px;
+                height: 23px;
+            }
+            
+            .toggle-switch::before {
+                width: 17px;
+                height: 17px;
+            }
+            
+            .toggle-switch.active::before {
+                transform: translateX(22px);
+            }
+        }
+    </style>
+
+    <!-- JavaScript -->
+    <script>
+        // Theme Management with localStorage persistence
+        function toggleTheme() {
+            const body = document.body;
+            const toggle = document.querySelector('.toggle-switch');
+            const currentTheme = body.getAttribute('data-theme');
+
+            if (currentTheme === 'light') {
+                body.setAttribute('data-theme', 'dark');
+                toggle.classList.remove('active');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                body.setAttribute('data-theme', 'light');
+                toggle.classList.add('active');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Initialize theme from localStorage or default to dark
+        function initTheme() {
+            const body = document.body;
+            const toggle = document.querySelector('.toggle-switch');
+
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            body.setAttribute('data-theme', savedTheme);
+
+            if (savedTheme === 'light') {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initTheme();
+
+            // Keyboard accessibility for toggle
+            document.querySelector('.toggle-switch').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+            });
+        });
+    </script>
+
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

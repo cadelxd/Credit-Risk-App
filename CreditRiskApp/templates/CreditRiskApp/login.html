@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Login – Credit Risk Analyzer{% endblock %}
+
+{% block description %}Secure login to Credit Risk Analyzer - Advanced financial risk assessment platform{% endblock %}
+
+{% block content %}
+    <h1>Welcome Back</h1>
+
+    <div class="form-container">
+        {% if form.errors %}
+            <div class="error-message">
+                ⚠️ Invalid username or password. Please try again.
+            </div>
+        {% endif %}
+
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password.id_for_label }}">Password</label>
+                {{ form.password }}
+            </div>
+            
+            <button type="submit" id="loginBtn">
+                <span class="btn-text">Sign In</span>
+            </button>
+        </form>
+
+        <p>Don't have an account? <a href="{% url 'register' %}">Create one here</a></p>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // Form submission with loading state
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('loginBtn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            
+            submitBtn.classList.add('loading');
+            btnText.textContent = 'Signing In...';
+            submitBtn.disabled = true;
+        });
+
+        // Enhanced input interactions
+        const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
+        inputs.forEach(input => {
+            // Add floating label effect
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (!this.value) {
+                    this.parentElement.classList.remove('focused');
+                }
+            });
+
+            // Real-time validation feedback
+            input.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    this.style.borderColor = 'var(--success-color)';
+                } else {
+                    this.style.borderColor = 'var(--border-color)';
+                }
+            });
+        });
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add entrance animation
+            const container = document.querySelector('.form-container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.5s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+
+        // Add some visual feedback for form errors
+        {% if form.errors %}
+            document.addEventListener('DOMContentLoaded', function() {
+                const errorInputs = document.querySelectorAll('input');
+                errorInputs.forEach(input => {
+                    input.style.borderColor = 'var(--error-bg)';
+                    input.addEventListener('focus', function() {
+                        this.style.borderColor = 'var(--accent-primary)';
+                    });
+                });
+            });
+        {% endif %}
+    </script>
+{% endblock %}

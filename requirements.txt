@@ -1,0 +1,12 @@
+gunicorn
+xgboost
+pandas
+numpy
+joblib
+scikit-learn
+python-dotenv
+google-generativeai
+django
+whitenoise
+dj-database-url
+psycopg2-binary

@@ -1,0 +1,53 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# === Virtual Environment ===
+venv/
+ENV/
+env/
+
+# === Jupyter / Notebook Stuff ===
+.ipynb_checkpoints/
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Editor Config ===
+.vscode/
+.idea/
+
+# === Django ===
+*.log
+*.pot
+*.pyc
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# === Secret Keys ===
+.env
+render.yaml
+Procfile
+
+# === Model & Data Files ===
+data/extracted_csv/
+data/raw_pdfs/
+
+# === Pip Freeze Output ===
+pip-selfcheck.json
+
+# === Python Packaging ===
+*.tar.gz
+*.whl
+MANIFEST
+
+# === __init__.py if auto-generated ===
+*/__init__.pyc

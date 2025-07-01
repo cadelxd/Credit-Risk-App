@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Credit Risk Analyzer - Results{% endblock %}
+{% block description %}Credit risk analysis results based on uploaded bank statement{% endblock %}
+
+{% block logout_button %}
+<form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">⏻</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<h1>Credit Risk Analysis Results</h1>
+
+<div class="results-section">
+    <div class="prediction-card">
+        <div class="prediction-header">
+            <h2>📊 Risk Analysis Summary</h2>
+        </div>
+
+        <div class="prediction-content">
+            <div class="risk-level">
+               {% if 'high' in prediction|lower %}
+                <h2 style="color: #e60000 !important; font-size: 3rem; font-weight: 700;">High Risk</h2>
+                {% else %}
+                <h2 style="color: #2ecc71 !important; font-size: 3rem; font-weight: 700;">Low Risk</h2>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <form method="get" action="{% url 'home' %}">
+                <button type="submit" class="btn-secondary">
+                    🔄 Analyze Another Statement
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 60vh;
+        padding: 20px;
+    }
+
+    .prediction-card {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        max-width: 450px;
+        width: 100%;
+        color: var(--text-primary);
+        text-align: center;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .prediction-header h2 {
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+        font-weight: 700;
+        font-size: 1.5rem;
+    }
+
+    .analysis-date {
+        margin-bottom: 30px;
+    }
+
+    .analysis-date small {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .prediction-content {
+        margin-bottom: 30px;
+    }
+
+    .risk-indicator {
+        margin-bottom: 30px;
+    }
+
+    .risk-indicator h1 {
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .action-buttons {
+        margin-top: 30px;
+    }
+
+    .btn-secondary {
+        background: var(--accent-primary);
+        color: white;
+        border: none;
+        padding: 15px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .btn-secondary:hover {
+        background: var(--accent-secondary);
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary:active {
+        transform: translateY(0);
+    }
+
+
+    @media (max-width: 768px) {
+        .results-section {
+            padding: 20px 15px;
+            min-height: 50vh;
+        }
+
+        .prediction-card {
+            padding: 30px 20px;
+        }
+
+        .prediction-header h2 {
+            font-size: 1.3rem;
+        }
+
+        .risk-indicator h1 {
+            font-size: 2.5rem !important;
+        }
+
+        .btn-secondary {
+            padding: 12px 20px;
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .prediction-card {
+            padding: 25px 15px;
+        }
+
+        .risk-indicator h1 {
+            font-size: 2rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add smooth entrance animation
+    document.addEventListener('DOMContentLoaded', function() {
+        const predictionCard = document.querySelector('.prediction-card');
+        if (predictionCard) {
+            predictionCard.style.opacity = '0';
+            predictionCard.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                predictionCard.style.transition = 'all 0.6s ease-out';
+                predictionCard.style.opacity = '1';
+                predictionCard.style.transform = 'translateY(0)';
+            }, 100);
+        }
+    });
+</script>
+{% endblock %}

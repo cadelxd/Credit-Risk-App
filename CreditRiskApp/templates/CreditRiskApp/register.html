@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+
+{% block title %}Register – Credit Risk Analyzer{% endblock %}
+
+{% block description %}Create your account for Credit Risk Analyzer - Advanced financial risk assessment platform{% endblock %}
+
+{% block content %}
+    <h1>Join Us Today</h1>
+
+    <div class="form-container">
+        {% if form.errors %}
+            <div class="error-message">
+                ⚠️ Please correct the errors below and try again.
+                <ul style="margin: 10px 0 0 20px;">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post" id="registerForm">
+            {% csrf_token %}
+            
+            <!-- Username Field -->
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username</label>
+                {{ form.username }}
+                <div class="field-help" id="username-help">
+                    <small>Choose a unique username (3-150 characters)</small>
+                </div>
+            </div>
+            
+            <!-- Email Field (if exists) -->
+            {% if form.email %}
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email Address</label>
+                {{ form.email }}
+                <div class="field-help">
+                    <small>We'll use this for account recovery</small>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Password Fields -->
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Password</label>
+                {{ form.password1 }}
+                <div class="password-strength" id="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strength-fill"></div>
+                    </div>
+                    <small id="strength-text">Password strength: <span id="strength-level">Weak</span></small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                {{ form.password2 }}
+                <div class="field-help" id="password-match">
+                    <small>Passwords must match</small>
+                </div>
+            </div>
+            
+            <button type="submit" id="registerBtn">
+                <span class="btn-text">Create Account</span>
+            </button>
+        </form>
+
+        <p>Already have an account? <a href="{% url 'login' %}">Sign in here</a></p>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+    <style>
+        .field-help {
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .field-help small {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .password-strength {
+            margin-top: 8px;
+        }
+
+        .strength-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            background: #ff4444;
+        }
+
+        .strength-fill.weak {
+            width: 25%;
+            background: #ff4444;
+        }
+
+        .strength-fill.fair {
+            width: 50%;
+            background: #ffaa00;
+        }
+
+        .strength-fill.good {
+            width: 75%;
+            background: #00aa00;
+        }
+
+        .strength-fill.strong {
+            width: 100%;
+            background: #00ff00;
+        }
+
+        #strength-text {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .field-error {
+            border-color: var(--error-bg) !important;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .field-success {
+            border-color: var(--success-color) !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .error-message ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .error-message li {
+            padding: 2px 0;
+        }
+
+        .error-message li::before {
+            content: "• ";
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        // Password strength checker
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            const checks = {
+                length: password.length >= 8,
+                lowercase: /[a-z]/.test(password),
+                uppercase: /[A-Z]/.test(password),
+                numbers: /\d/.test(password),
+                symbols: /[^A-Za-z0-9]/.test(password)
+            };
+
+            strength = Object.values(checks).filter(Boolean).length;
+
+            const strengthFill = document.getElementById('strength-fill');
+            const strengthLevel = document.getElementById('strength-level');
+
+            // Remove all classes
+            strengthFill.className = 'strength-fill';
+
+            if (strength <= 2) {
+                strengthFill.classList.add('weak');
+                strengthLevel.textContent = 'Weak';
+                strengthLevel.style.color = '#ff4444';
+            } else if (strength === 3) {
+                strengthFill.classList.add('fair');
+                strengthLevel.textContent = 'Fair';
+                strengthLevel.style.color = '#ffaa00';
+            } else if (strength === 4) {
+                strengthFill.classList.add('good');
+                strengthLevel.textContent = 'Good';
+                strengthLevel.style.color = '#00aa00';
+            } else {
+                strengthFill.classList.add('strong');
+                strengthLevel.textContent = 'Strong';
+                strengthLevel.style.color = '#00ff00';
+            }
+
+            return strength;
+        }
+
+        // Password confirmation checker
+        function checkPasswordMatch() {
+            const password1 = document.querySelector('input[name="password1"]');
+            const password2 = document.querySelector('input[name="password2"]');
+            const matchIndicator = document.getElementById('password-match');
+
+            if (password2.value === '') {
+                matchIndicator.innerHTML = '<small>Passwords must match</small>';
+                password2.classList.remove('field-success', 'field-error');
+            } else if (password1.value === password2.value) {
+                matchIndicator.innerHTML = '<small style="color: var(--success-color);">✓ Passwords match</small>';
+                password2.classList.add('field-success');
+                password2.classList.remove('field-error');
+            } else {
+                matchIndicator.innerHTML = '<small style="color: var(--error-bg);">✗ Passwords do not match</small>';
+                password2.classList.add('field-error');
+                password2.classList.remove('field-success');
+            }
+        }
+
+        // Form submission with validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('registerBtn');
+            const btnText = submitBtn.querySelector('.btn-text');
+            
+            // Basic client-side validation
+            const password1 = document.querySelector('input[name="password1"]');
+            const password2 = document.querySelector('input[name="password2"]');
+            
+            if (password1.value !== password2.value) {
+                e.preventDefault();
+                password2.classList.add('field-error');
+                return;
+            }
+
+            submitBtn.classList.add('loading');
+            btnText.textContent = 'Creating Account...';
+            submitBtn.disabled = true;
+        });
+
+        // Enhanced input interactions
+        function setupInputEnhancements() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.classList.add('focused');
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.parentElement.classList.remove('focused');
+                });
+
+                if (input.name === 'password1') {
+                    input.addEventListener('input', function() {
+                        checkPasswordStrength(this.value);
+                    });
+                }
+
+                if (input.name === 'password2') {
+                    input.addEventListener('input', function() {
+                        checkPasswordMatch();
+                    });
+                }
+            });
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            setupInputEnhancements();
+        });
+    </script>
+{% endblock %}
