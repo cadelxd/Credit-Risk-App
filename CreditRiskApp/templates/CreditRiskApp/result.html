@@ -11,20 +11,49 @@
 {% endblock %}
 
 {% block content %}
-<h1>Credit Risk Analysis Results</h1>
+<h1>Credit Risk Analysis Summary</h1>
 
 <div class="results-section">
-    <div class="prediction-card">
-        <div class="prediction-header">
-            <h2>📊 Risk Analysis Summary</h2>
-        </div>
+    <div class="form-container">
+        <div class="results-box">
+            <div class="results-header">
+                <div class="header-content">
+                    <h3>📊 Overall Risk Assessment</h3>
+                </div>
+            </div>
 
-        <div class="prediction-content">
-            <div class="risk-level">
-               {% if 'high' in prediction|lower %}
-                <h2 style="color: #e60000 !important; font-size: 3rem; font-weight: 700;">High Risk</h2>
+            <div class="results-content">
+                {% if overall_result %}
+                    <div class="risk-level">
+
+                        {% comment %}
+                        Define risk categories:
+                        Low: <40%
+                        Medium: 40%-70%
+                        High: >70%
+                        {% endcomment %}
+
+                        {% if overall_result.risk_score > 70 %}
+                            <h2 style="color: #e60000; font-size: 2.5rem; font-weight: 700; text-align: center;">High Risk</h2>
+                        {% elif overall_result.risk_score >= 40 %}
+                            <h2 style="color: #e67e22; font-size: 2.5rem; font-weight: 700; text-align: center;">Medium Risk</h2>
+                        {% else %}
+                            <h2 style="color: #2ecc71; font-size: 2.5rem; font-weight: 700; text-align: center;">Low Risk</h2>
+                        {% endif %}
+
+                        {% if overall_explanations %}
+                            <h3>Risk Score: {{ overall_result.risk_score|floatformat:2 }}%</h3>
+                            <ul style="text-align: left; margin-top: 15px; color: #e60000;">
+                                {% for explanation in overall_explanations %}
+                                    <li>{{ explanation }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>No specific risk explanations available.</p>
+                        {% endif %}
+                    </div>
                 {% else %}
-                <h2 style="color: #2ecc71 !important; font-size: 3rem; font-weight: 700;">Low Risk</h2>
+                    <p>No overall risk result found.</p>
                 {% endif %}
             </div>
         </div>
@@ -41,13 +70,106 @@
 {% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <style>
     .results-section {
+        display: grid;
+        gap: 30px;
+        margin-top: 20px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .form-container {
+        background: var(--bg-secondary);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px var(--shadow);
+        transition: all 0.3s ease;
+        color: var(--text-primary);
+    }
+
+    .results-box {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+        box-shadow: 0 5px 15px var(--shadow);
+        margin-bottom: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .results-header {
         display: flex;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
-        min-height: 60vh;
         padding: 20px;
+        background: var(--bg-tertiary);
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+    }
+
+    .header-content {
+        flex: 1;
+    }
+
+    .header-content h3 {
+        color: var(--text-primary);
+        margin: 0;
+        font-weight: 700;
+    }
+
+    .results-content {
+        padding: 20px;
+        background: var(--bg-secondary);
+        text-align: center;
+    }
+
+    .risk-level {
+        margin-top: 20px;
+    }
+
+    .risk-level h3 {
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    .risk-level h2 {
+        margin: 20px 0;
+    }
+
+    .risk-level ul {
+        margin-top: 20px;
+        padding-left: 20px;
+    }
+
+    .risk-level li {
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+
+    .action-buttons {
+        margin-top: 20px;
+    }
+
+    .btn-secondary {
+        background: var(--accent-primary);
+        color: white;
+        border: none;
+        padding: 15px 25px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .btn-secondary:hover {
+        background: var(--accent-secondary);
+        transform: translateY(-2px);
     }
 
     .prediction-card {
@@ -56,32 +178,15 @@
         border-radius: 20px;
         box-shadow: 0 10px 30px var(--shadow);
         max-width: 450px;
-        width: 100%;
+        margin: 0 auto;
         color: var(--text-primary);
         text-align: center;
-        animation: fadeInUp 0.6s ease-out;
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
     }
 
     .prediction-header h2 {
         color: var(--text-secondary);
         margin-bottom: 10px;
         font-weight: 700;
-        font-size: 1.5rem;
-    }
-
-    .analysis-date {
-        margin-bottom: 30px;
     }
 
     .analysis-date small {
@@ -90,79 +195,48 @@
     }
 
     .prediction-content {
-        margin-bottom: 30px;
-    }
-
-    .risk-indicator {
-        margin-bottom: 30px;
-    }
-
-    .risk-indicator h1 {
-        margin: 0;
-        font-weight: 700;
-    }
-
-    .action-buttons {
         margin-top: 30px;
     }
 
-    .btn-secondary {
-        background: var(--accent-primary);
-        color: white;
-        border: none;
-        padding: 15px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: 100%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-    
-    .btn-secondary:hover {
-        background: var(--accent-secondary);
-        transform: translateY(-2px);
-    }
-    
-    .btn-secondary:active {
-        transform: translateY(0);
+    .risk-indicator h1 {
+        margin: 0 0 20px;
     }
 
+    .prediction-details {
+        text-align: left;
+        margin-top: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .detail-label {
+        color: var(--text-secondary);
+    }
+
+    .detail-value {
+        color: var(--accent-primary);
+    }
 
     @media (max-width: 768px) {
-        .results-section {
-            padding: 20px 15px;
-            min-height: 50vh;
-        }
-
-        .prediction-card {
+        .form-container {
             padding: 30px 20px;
         }
 
-        .prediction-header h2 {
-            font-size: 1.3rem;
+        .results-header {
+            padding: 15px;
         }
 
-        .risk-indicator h1 {
-            font-size: 2.5rem !important;
+        .results-content {
+            padding: 15px;
         }
 
-        .btn-secondary {
-            padding: 12px 20px;
-            font-size: 1rem;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .prediction-card {
-            padding: 25px 15px;
-        }
-
-        .risk-indicator h1 {
+        .risk-level h2 {
             font-size: 2rem !important;
         }
     }
@@ -171,17 +245,17 @@
 
 {% block extra_js %}
 <script>
-    // Add smooth entrance animation
+    // Smooth fade-in animation for the result card
     document.addEventListener('DOMContentLoaded', function() {
-        const predictionCard = document.querySelector('.prediction-card');
-        if (predictionCard) {
-            predictionCard.style.opacity = '0';
-            predictionCard.style.transform = 'translateY(30px)';
+        const resultsBox = document.querySelector('.results-box');
+        if (resultsBox) {
+            resultsBox.style.opacity = '0';
+            resultsBox.style.transform = 'translateY(30px)';
             
             setTimeout(() => {
-                predictionCard.style.transition = 'all 0.6s ease-out';
-                predictionCard.style.opacity = '1';
-                predictionCard.style.transform = 'translateY(0)';
+                resultsBox.style.transition = 'all 0.6s ease-out';
+                resultsBox.style.opacity = '1';
+                resultsBox.style.transform = 'translateY(0)';
             }, 100);
         }
     });

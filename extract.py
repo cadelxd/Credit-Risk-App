@@ -1,41 +1,92 @@
 import os
+import base64
+import google.generativeai as genai
 import json
-from pdf_parser.extract_data import extract_statement_data
+import re
+from dotenv import load_dotenv
 
-RAW_PDF_DIR = "data/raw_pdfs"
-OUTPUT_JSON_PATH = "data/extracted_csv/combined_output.json"
+load_dotenv()
 
-def process_all_pdfs():
-    combined_data = []
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-    for filename in os.listdir(RAW_PDF_DIR):
-        if filename.lower().endswith(".pdf"):
-            pdf_path = os.path.join(RAW_PDF_DIR, filename)
-            print(f"\nProcessing {filename} ...")
+def convert_pdf_to_base64(pdf_path):
+    with open(pdf_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
 
-            try:
-                summary = extract_statement_data(pdf_path)
+def clean_response_text(raw_text):
+    return re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text, flags=re.DOTALL).strip()
 
-                combined_data.append({
-                    'filename': filename,
-                    'avg_monthly_balance': summary['avg_monthly_balance'],
-                    'avg_monthly_inflow': summary['avg_monthly_inflow'],
-                    'avg_monthly_outflow': summary['avg_monthly_outflow']
-                })
+def detect_account_type(pdf_path):
+    img_data = convert_pdf_to_base64(pdf_path)
 
-                print("Success")
+    detection_prompt = """
+You are a document classifier. The user has uploaded a multi-page Indian bank statement in PDF format.
 
-            except Exception as e:
-                print(f"Failed {filename}: {e}")
+Identify if it is a **debit account (like savings or current)** or a **credit card account**.
 
-    return combined_data
+Respond with only one word: "debit" or "credit"
+"""
 
-if __name__ == "__main__":
-    os.makedirs(os.path.dirname(OUTPUT_JSON_PATH), exist_ok=True)
-    results = process_all_pdfs()
+    response = model.generate_content([
+        detection_prompt,
+        {"mime_type": "application/pdf", "data": img_data}
+    ])
 
-    # Save to JSON file
-    with open(OUTPUT_JSON_PATH, 'w') as json_file:
-        json.dump(results, json_file, indent=4)
+    account_type = response.text.strip().lower()
+    if account_type not in ["debit", "credit"]:
+        raise ValueError(f"Failed to classify account type. Got: {account_type}")
+    
+    return account_type
 
-    print(f"\nAll results saved to {OUTPUT_JSON_PATH}")
+def extract_statement_data(pdf_path):
+    img_data = convert_pdf_to_base64(pdf_path)
+    account_type = detect_account_type(pdf_path)
+
+    if account_type == "debit":
+        prompt = """
+You are a financial assistant. The user has uploaded an Indian **debit account** bank statement PDF.
+
+Extract the following features:
+- "avg_monthly_inflow"
+- "avg_closing_balance"
+- "spending_to_income_ratio"
+- "emi_to_income_ratio"
+- "bounce_rate"
+
+If any feature is missing or not explicitly stated, infer or estimate it based on the available data. Convert to INR wherever applicable. 
+
+Return a JSON object with only these keys and float values. No explanation or markdown.
+"""
+    else:  # credit
+        prompt = """
+You are a financial assistant. The user has uploaded an Indian **credit card account** statement PDF.
+
+Extract the following features:
+- "credit_limit"
+- "total_outstanding_balance"
+- "credit_utilization_ratio"
+- "repayment_ratio"
+- "late_fee_ratio"
+
+If any feature is missing or not explicitly stated, infer or estimate it based on the available data. Convert to INR wherever applicable.
+
+Return a JSON object with only these keys and float values. No explanation or markdown.
+"""
+
+    response = model.generate_content([
+        prompt,
+        {"mime_type": "application/pdf", "data": img_data}
+    ])
+
+    raw_text = clean_response_text(response.text)
+    
+    try:
+        features = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSON parsing failed: {e}\nResponse was:\n{raw_text}")
+
+    # Return a flat dict with account_type and features merged
+    result = {"account_type": account_type}
+    result.update(features)
+    return result

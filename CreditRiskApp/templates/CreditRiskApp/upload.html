@@ -16,15 +16,14 @@
 <h1>Credit Risk Analysis</h1>
 <div class="upload-section">
     <div class="form-container">
-        <div class="collapsible-box">
-            <div class="upload-header collapsible-header" data-target="upload-form">
+        <div class="upload-box">
+            <div class="upload-header">
                 <div class="header-content">
                     <h3>📄 Upload Bank Statement</h3>
                 </div>
-                <span class="arrow">▶</span>
             </div>
 
-            <div class="collapsible-content" id="upload-form">
+            <div class="upload-content">
                 <form method="post" enctype="multipart/form-data" id="uploadForm">
                     {% csrf_token %}
 
@@ -51,31 +50,6 @@
                                 <span class="progress-text" id="progressText">Ready to analyze</span>
                             </div>
                         </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div class="collapsible-box">
-            <div class="upload-header collapsible-header" data-target="manual-form">
-                <div class="header-content">
-                    <h3>📝 Manual Entry</h3>
-                </div>
-                <span class="arrow">▶</span>
-            </div>
-
-            <div class="collapsible-content" id="manual-form">
-                <form id="manualForm">
-                    <div class="form-group">
-                        <label for="id_avg_balance">Average Monthly Balance</label>
-                        <input type="number" name="avg_balance" id="id_avg_balance">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_avg_inflow">Average Monthly Inflow</label>
-                        <input type="number" name="avg_inflow" id="id_avg_inflow">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_avg_outflow">Average Monthly Outflow</label>
-                        <input type="number" name="avg_outflow" id="id_avg_outflow">
                     </div>
                 </form>
             </div>
@@ -129,7 +103,7 @@
         box-shadow: 0 8px 25px var(--shadow);
     }
 
-    .collapsible-box {
+    .upload-box {
         padding-bottom: 0;
         background: var(--bg-tertiary);
         border: 1px solid var(--border-color);
@@ -140,66 +114,24 @@
         transition: all 0.3s ease;
     }
 
-
-    .collapsible-header {
+    .upload-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        cursor: pointer;
-        margin-bottom: 15px;
         padding: 20px;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        margin-bottom: 0px;
         background: var(--bg-tertiary);
-        transition: all 0.3s ease;
-    }
-
-    .collapsible-header:hover {
-        background: var(--bg-secondary);
-        border-color: var(--accent-primary);
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+        margin-bottom: 0px;
     }
 
     .header-content {
         flex: 1;
     }
 
-    .collapse-arrow {
-        margin-left: 15px;
-    }
-
-    .arrow {
-        font-size: 1.2rem;
-        transition: transform 0.3s ease;
-        color: var(--text-secondary);
-        transform: rotate(0deg);
-    }
-
-    .collapsible-header.expanded .arrow {
-        transform: rotate(90deg); /* ▼ down */
-    }
-
-    .collapsible-content {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.3s ease-out, padding 0.3s ease-out;
-        margin-bottom: 0px;
-        padding: 0;
-        border-top: none;
-        background: var(--bg-secondary);
-    }
-
-    .collapsible-content.expanded {
-        max-height: 1000px;
+    .upload-content {
         padding: 20px;
-        margin-bottom: 0px;
-        border-top: 1px solid var(--border-color);
-        transition: max-height 0.3s ease-in, padding 0.3s ease-in;
-    }
-
-    .upload-header {
-        text-align: left;
-        margin-bottom: 0px;
+        background: var(--bg-secondary);
     }
 
     .upload-header h2 {
@@ -281,6 +213,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
+        min-height: 30px;
     }
     
     .file-name {
@@ -289,6 +222,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         margin-right: 15px;
+        min-width: 0;
+        max-width: 250px;
     }
     
     .file-size {
@@ -314,6 +249,7 @@
         transition: all 0.2s ease;
         padding: 0;
         line-height: 1;
+        flex-shrink: 0;
     }
 
     .remove-file:hover {
@@ -486,26 +422,16 @@
         .file-upload-icon {
             font-size: 2.5rem;
         }
+
+        .file-name {
+            max-width: 180px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function setupCollapsibleSections() {
-        const headers = document.querySelectorAll('.collapsible-header');
-        
-        headers.forEach(header => {
-            header.addEventListener('click', function () {
-                const targetId = this.getAttribute('data-target');
-                const content = document.getElementById(targetId);
-            
-                this.classList.toggle('expanded');
-                content.classList.toggle('expanded');
-            });
-        });
-    }
-    
     function setupFileUpload() {
         const fileInput = document.querySelector('input[type="file"]');
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -557,6 +483,7 @@
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'file-name';
                 nameSpan.textContent = file.name;
+                nameSpan.title = file.name; // Show full name on hover
 
                 const sizeSpan = document.createElement('span');
                 sizeSpan.className = 'file-size';
@@ -609,19 +536,11 @@
         }
 
         function checkAnalyzeButtonState() {
-            const avgBalance = document.getElementById('id_avg_balance').value.trim();
-            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
-            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
-            const fileUploaded = fileInput.files.length > 0;
+            const fileInput = document.querySelector('input[type="file"]');
+            const fileUploaded = fileInput && fileInput.files.length > 0;
 
-            if (
-                (avgBalance !== '' && avgInflow !== '' && avgOutflow !== '') ||
-                fileUploaded
-            ) {
-                analyzeBtn.disabled = false;
-            } else {
-                analyzeBtn.disabled = true;
-            }
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = !fileUploaded;
         }
 
         function showError(message) {
@@ -642,11 +561,6 @@
                 errorDiv.remove();
             }, 3000);
         }
-
-        // Watch manual input changes
-        ['id_avg_balance', 'id_avg_inflow', 'id_avg_outflow'].forEach(id => {
-            document.getElementById(id).addEventListener('input', checkAnalyzeButtonState);
-        });
     }
 
     function removeFile() {
@@ -668,33 +582,20 @@
             
             const btnText = analyzeBtn.querySelector('.btn-text');
             const fileInput = document.querySelector('input[type="file"]');
-
-            const avgBalance = document.getElementById('id_avg_balance').value.trim();
-            const avgInflow = document.getElementById('id_avg_inflow').value.trim();
-            const avgOutflow = document.getElementById('id_avg_outflow').value.trim();
-
-            const isManualFilled = avgBalance !== '' && avgInflow !== '' && avgOutflow !== '';
+                    
             const isFileUploaded = fileInput && fileInput.files.length > 0;
-
-            if (!isManualFilled && !isFileUploaded) {
-                showFormError('Please upload a PDF or fill all manual fields.');
+                    
+            if (!isFileUploaded) {
+                showFormError('Please upload a PDF file.');
                 return;
             }
-
+            
             // Create form data
             const formData = new FormData();
             
-            if (isFileUploaded) {
-                Array.from(fileInput.files).forEach(file => {
-                    formData.append('pdf_file', file);
-                });
-            }
-            
-            if (isManualFilled) {
-                formData.append('avg_balance', avgBalance);
-                formData.append('avg_inflow', avgInflow);
-                formData.append('avg_outflow', avgOutflow);
-            }
+            Array.from(fileInput.files).forEach(file => {
+                formData.append('pdf_file', file);
+            });
             
             // Add CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -738,7 +639,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        setupCollapsibleSections();
         setupFileUpload();
         setupFormSubmission();
         setupEnhancedInteractions();
