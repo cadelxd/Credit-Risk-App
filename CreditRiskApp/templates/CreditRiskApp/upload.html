@@ -26,6 +26,8 @@
             <div class="upload-content">
                 <form method="post" enctype="multipart/form-data" id="uploadForm">
                     {% csrf_token %}
+                    <!-- Add hidden input for group_by -->
+                    <input type="hidden" name="group_by" id="groupByInput" value="overall">
 
                     <div class="form-group">
                         <label for="id_pdf_file">Select Bank Statement</label>
@@ -52,6 +54,12 @@
                         </div>
                     </div>
                 </form>
+            </div>
+            <br>
+            <div class="toggle-section">
+                <span class="group-label">Group Risk By:</span>
+                <div class="toggle-switch group-toggle" onclick="toggleGrouping()" role="button" tabindex="0" aria-label="Toggle group mode"></div>
+                <span id="groupByText" class="group-text">Overall</span>
             </div>
         </div>
         <button type="submit" id="analyzeBtn" form="uploadForm" disabled>
@@ -270,7 +278,58 @@
         border-radius: 3px;
         overflow: hidden;
     }
-
+    .toggle-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 25px;
+        font-size: 1rem;
+    }
+    
+    .group-label {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .toggle-switch.group-toggle {
+        width: 40px;
+        height: 25px;
+        background: var(--bg-tertiary);
+        border-radius: 15px;
+        position: relative;
+        cursor: pointer;
+        border: 2px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+    
+    .toggle-switch.group-toggle::before {
+        content: '';
+        position: absolute;
+        width: 19px;
+        height: 19px;
+        border-radius: 50%;
+        background: var(--text-primary);
+        top: 1px;
+        left: 2px;
+        transition: transform 0.3s ease;
+    }
+    
+    .toggle-switch.group-toggle.active {
+        background: var(--accent-primary);
+    }
+    
+    .toggle-switch.group-toggle.active::before {
+        transform: translateX(18px);
+        background: white;
+    }
+    
+    .group-text {
+        font-weight: 500;
+        min-width: 60px;
+        color: var(--text-primary);
+    }
+    
     .progress-fill {
         height: 100%;
         background: var(--accent-primary);
@@ -432,6 +491,22 @@
 
 {% block extra_js %}
 <script>
+    function toggleGrouping() {
+        const toggle = document.querySelector('.toggle-switch.group-toggle');
+        const text = document.getElementById('groupByText');
+        const hiddenInput = document.getElementById('groupByInput');
+
+        toggle.classList.toggle('active');
+
+        const isNameGrouping = toggle.classList.contains('active');
+        text.textContent = isNameGrouping ? 'Name' : 'Overall';
+
+        // This is the key fix - update the hidden input value
+        if (hiddenInput) {
+            hiddenInput.value = isNameGrouping ? 'name' : 'overall';
+        }
+    }
+
     function setupFileUpload() {
         const fileInput = document.querySelector('input[type="file"]');
         const fileUploadArea = document.getElementById('fileUploadArea');
@@ -590,22 +665,11 @@
                 return;
             }
             
-            // Create form data
-            const formData = new FormData();
-            
-            Array.from(fileInput.files).forEach(file => {
-                formData.append('pdf_file', file);
-            });
-            
-            // Add CSRF token
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            formData.append('csrfmiddlewaretoken', csrfToken);
-
             analyzeBtn.classList.add('loading');
             btnText.textContent = '🔄 Analyzing...';
             analyzeBtn.disabled = true;
             
-            // Submit the form
+            // Submit the form normally (no need to create FormData manually)
             uploadForm.submit();
         });
 

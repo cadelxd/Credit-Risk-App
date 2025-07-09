@@ -48,6 +48,7 @@ def extract_statement_data(pdf_path):
 You are a financial assistant. The user has uploaded an Indian **debit account** bank statement PDF.
 
 Extract the following features:
+-"name" (account holder's name)
 - "avg_monthly_inflow"
 - "avg_closing_balance"
 - "spending_to_income_ratio"
@@ -63,6 +64,7 @@ Return a JSON object with only these keys and float values. No explanation or ma
 You are a financial assistant. The user has uploaded an Indian **credit card account** statement PDF.
 
 Extract the following features:
+-"name" (account holder's name)
 - "credit_limit"
 - "total_outstanding_balance"
 - "credit_utilization_ratio"

@@ -59,6 +59,7 @@ def home(request):
     if request.method == 'POST':
         form = PDFUploadForm(request.POST, request.FILES)
         uploaded_files = request.FILES.getlist('pdf_file')
+        group_by = request.POST.get('group_by', 'overall')
         summaries = []
 
         if uploaded_files:
@@ -72,13 +73,12 @@ def home(request):
                     summary = extract_statement_data(temp_pdf_path)
                     os.remove(temp_pdf_path)
 
-                    # extract_statement_data returns flat dict, no nested 'features' key
-                    # So adjust check accordingly
                     if 'account_type' not in summary:
                         return render(request, 'CreditRiskApp/result.html', {
                             'prediction': f"⚠️ Could not extract valid data from {uploaded_file.name}."
                         })
 
+                    summary['source'] = uploaded_file.name  # Track source filename for grouping
                     summaries.append(summary)
 
                 except Exception as e:
@@ -92,81 +92,82 @@ def home(request):
                 'error': "Please upload at least one valid bank statement PDF."
             })
 
-        credit_summaries = [s for s in summaries if s.get('account_type') == 'credit']
-        debit_summaries = [s for s in summaries if s.get('account_type') == 'debit']
+        if group_by == 'name':
+            # Group by extracted name (not filename)
+            grouped = {}
+            for summary in summaries:
+                name = summary.get('name', 'Unknown')
+                grouped.setdefault(name, []).append(summary)
 
-        results = []
-        credit_risk_score = 0
-        debit_risk_score = 0
+            results = []
+            for name, group_summaries in grouped.items():
+                result = calculate_risk(group_summaries, name=name)
+                results.append(result)
 
-        # ---- CREDIT ----
-        if credit_summaries:
-            df_credit = pd.DataFrame(credit_summaries)
-            credit_aggregated = {
-                'credit_limit': df_credit['credit_limit'].mean(),
-                'total_outstanding_balance': df_credit['total_outstanding_balance'].mean(),
-                'credit_utilization_ratio': df_credit['credit_utilization_ratio'].mean(),
-                'repayment_ratio': df_credit['repayment_ratio'].mean(),
-                'late_fee_ratio': df_credit['late_fee_ratio'].mean()
-            }
-            model_credit = joblib.load('data/model/credit_model.joblib')
-            credit_risk_score = model_credit.predict(pd.DataFrame([credit_aggregated]))[0]
-
-            explanations_credit = explain_credit_risk(credit_aggregated)
-            results.append({
-                'account_type': 'Credit',
-                'risk_score': round(credit_risk_score, 2),
-                'prediction': risk_bucket(credit_risk_score),
-                'aggregated': credit_aggregated,
-                'explanations': explanations_credit
+            return render(request, 'CreditRiskApp/result.html', {
+                'grouped_results': results,
+                'used_upload': True,
+                'grouped_by': 'name'
             })
 
-        # ---- DEBIT ----
-        if debit_summaries:
-            df_debit = pd.DataFrame(debit_summaries)
-            debit_aggregated = {
-                'avg_monthly_inflow': df_debit['avg_monthly_inflow'].mean(),
-                'avg_closing_balance': df_debit['avg_closing_balance'].mean(),
-                'spending_to_income_ratio': df_debit['spending_to_income_ratio'].mean(),
-                'emi_to_income_ratio': df_debit['emi_to_income_ratio'].mean(),
-                'bounce_rate': df_debit['bounce_rate'].mean()
-            }
-            model_debit = joblib.load('data/model/debit_model.joblib')
-            debit_risk_score = model_debit.predict(pd.DataFrame([debit_aggregated]))[0]
-
-            explanations_debit = explain_debit_risk(debit_aggregated)
-            results.append({
-                'account_type': 'Debit',
-                'risk_score': round(debit_risk_score, 2),
-                'prediction': risk_bucket(debit_risk_score),
-                'aggregated': debit_aggregated,
-                'explanations': explanations_debit
+        else:
+            # Overall aggregation
+            result = calculate_risk(summaries)
+            return render(request, 'CreditRiskApp/result.html', {
+                'overall_result': result,
+                'overall_explanations': result['explanations'],
+                'used_upload': True,
+                'grouped_by': 'overall'
             })
-
-        # ---- OVERALL ----
-        overall_risk_score = max(credit_risk_score, debit_risk_score)
-        # Combine explanations from both types for overall
-        overall_explanations = []
-        if credit_summaries:
-            overall_explanations.extend(explanations_credit)
-        if debit_summaries:
-            overall_explanations.extend(explanations_debit)
-
-        results = [{
-            'account_type': 'Overall',
-            'risk_score': round(overall_risk_score, 2),
-            'prediction': risk_bucket(overall_risk_score),
-            'aggregated': None,
-            'explanations': overall_explanations
-        }]
-
-        return render(request, 'CreditRiskApp/result.html', {
-            'overall_result': results[0] if results else None,
-            'overall_explanations': results[0]['explanations'] if results else [],
-            'used_upload': True
-        })
-        
 
     else:
         form = PDFUploadForm()
         return render(request, 'CreditRiskApp/upload.html', {'form': form})
+
+
+def calculate_risk(summaries, name=None):
+    credit_summaries = [s for s in summaries if s.get('account_type') == 'credit']
+    debit_summaries = [s for s in summaries if s.get('account_type') == 'debit']
+
+    credit_risk_score = 0
+    debit_risk_score = 0
+    explanations_credit = []
+    explanations_debit = []
+
+    if credit_summaries:
+        df_credit = pd.DataFrame(credit_summaries)
+        credit_aggregated = {
+            'credit_limit': df_credit['credit_limit'].mean(),
+            'total_outstanding_balance': df_credit['total_outstanding_balance'].mean(),
+            'credit_utilization_ratio': df_credit['credit_utilization_ratio'].mean(),
+            'repayment_ratio': df_credit['repayment_ratio'].mean(),
+            'late_fee_ratio': df_credit['late_fee_ratio'].mean()
+        }
+        model_credit = joblib.load('data/model/credit_model.joblib')
+        credit_risk_score = model_credit.predict(pd.DataFrame([credit_aggregated]))[0]
+        explanations_credit = explain_credit_risk(credit_aggregated)
+
+    if debit_summaries:
+        df_debit = pd.DataFrame(debit_summaries)
+        debit_aggregated = {
+            'avg_monthly_inflow': df_debit['avg_monthly_inflow'].mean(),
+            'avg_closing_balance': df_debit['avg_closing_balance'].mean(),
+            'spending_to_income_ratio': df_debit['spending_to_income_ratio'].mean(),
+            'emi_to_income_ratio': df_debit['emi_to_income_ratio'].mean(),
+            'bounce_rate': df_debit['bounce_rate'].mean()
+        }
+        model_debit = joblib.load('data/model/debit_model.joblib')
+        debit_risk_score = model_debit.predict(pd.DataFrame([debit_aggregated]))[0]
+        explanations_debit = explain_debit_risk(debit_aggregated)
+
+    overall_risk_score = max(credit_risk_score, debit_risk_score)
+    all_explanations = explanations_credit + explanations_debit
+
+    return {
+        'name': name,
+        'account_type': 'Grouped' if name else 'Overall',
+        'risk_score': round(overall_risk_score, 2),
+        'prediction': risk_bucket(overall_risk_score),
+        'aggregated': None,
+        'explanations': all_explanations
+    }

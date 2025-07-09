@@ -15,48 +15,82 @@
 
 <div class="results-section">
     <div class="form-container">
-        <div class="results-box">
-            <div class="results-header">
-                <div class="header-content">
-                    <h3>📊 Overall Risk Assessment</h3>
-                </div>
-            </div>
 
-            <div class="results-content">
-                {% if overall_result %}
-                    <div class="risk-level">
+        {% if grouped_by == 'name' %}
+            {% for item in grouped_results %}
+                <div class="results-box">
+                    <div class="results-header">
+                        <div class="header-content">
+                            <h3>📊 Risk for: {{ item.name }}</h3>
+                        </div>
+                    </div>
 
-                        {% comment %}
-                        Define risk categories:
-                        Low: <40%
-                        Medium: 40%-70%
-                        High: >70%
-                        {% endcomment %}
+                    <div class="results-content">
+                        {% if item.risk_score %}
+                            <div class="risk-level">
+                                {% if item.risk_score > 70 %}
+                                    <h2 style="color: #e60000; font-size: 2.5rem; font-weight: 700; text-align: center;">High Risk</h2>
+                                {% elif item.risk_score >= 40 %}
+                                    <h2 style="color: #e67e22; font-size: 2.5rem; font-weight: 700; text-align: center;">Medium Risk</h2>
+                                {% else %}
+                                    <h2 style="color: #2ecc71; font-size: 2.5rem; font-weight: 700; text-align: center;">Low Risk</h2>
+                                {% endif %}
 
-                        {% if overall_result.risk_score > 70 %}
-                            <h2 style="color: #e60000; font-size: 2.5rem; font-weight: 700; text-align: center;">High Risk</h2>
-                        {% elif overall_result.risk_score >= 40 %}
-                            <h2 style="color: #e67e22; font-size: 2.5rem; font-weight: 700; text-align: center;">Medium Risk</h2>
+                                <h3>Risk Score: {{ item.risk_score|floatformat:2 }}%</h3>
+
+                                {% if item.explanations %}
+                                    <ul style="text-align: left; margin-top: 15px; color: #e60000;">
+                                        {% for explanation in item.explanations %}
+                                            <li>{{ explanation }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>No specific risk explanations available.</p>
+                                {% endif %}
+                            </div>
                         {% else %}
-                            <h2 style="color: #2ecc71; font-size: 2.5rem; font-weight: 700; text-align: center;">Low Risk</h2>
-                        {% endif %}
-
-                        {% if overall_explanations %}
-                            <h3>Risk Score: {{ overall_result.risk_score|floatformat:2 }}%</h3>
-                            <ul style="text-align: left; margin-top: 15px; color: #e60000;">
-                                {% for explanation in overall_explanations %}
-                                    <li>{{ explanation }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p>No specific risk explanations available.</p>
+                            <p>No risk data available for this name.</p>
                         {% endif %}
                     </div>
-                {% else %}
-                    <p>No overall risk result found.</p>
-                {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="results-box">
+                <div class="results-header">
+                    <div class="header-content">
+                        <h3>📊 Overall Risk Assessment</h3>
+                    </div>
+                </div>
+
+                <div class="results-content">
+                    {% if overall_result %}
+                        <div class="risk-level">
+                            {% if overall_result.risk_score > 70 %}
+                                <h2 style="color: #e60000; font-size: 2.5rem; font-weight: 700; text-align: center;">High Risk</h2>
+                            {% elif overall_result.risk_score >= 40 %}
+                                <h2 style="color: #e67e22; font-size: 2.5rem; font-weight: 700; text-align: center;">Medium Risk</h2>
+                            {% else %}
+                                <h2 style="color: #2ecc71; font-size: 2.5rem; font-weight: 700; text-align: center;">Low Risk</h2>
+                            {% endif %}
+
+                            <h3>Risk Score: {{ overall_result.risk_score|floatformat:2 }}%</h3>
+
+                            {% if overall_explanations %}
+                                <ul style="text-align: left; margin-top: 15px; color: #e60000;">
+                                    {% for explanation in overall_explanations %}
+                                        <li>{{ explanation }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>No specific risk explanations available.</p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <p>No overall risk result found.</p>
+                    {% endif %}
+                </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="action-buttons">
             <form method="get" action="{% url 'home' %}">
