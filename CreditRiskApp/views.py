@@ -2,11 +2,18 @@ import os
 import tempfile
 import pandas as pd
 import joblib
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from django.shortcuts import render, redirect
 from .forms import PDFUploadForm, UserRegistrationForm
 from extract import extract_statement_data
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Risk bucket utility
 def risk_bucket(score):
@@ -53,79 +60,182 @@ def explain_debit_risk(features):
         explanations.append("EMI payments consume a large portion of income.")
     return explanations
 
-# Main home/upload view
+# Thread-safe PDF processing function
+def process_single_pdf(uploaded_file, temp_dir=None):
+    """
+    Process a single PDF file in a thread-safe manner
+    Returns: dict with success/error status and processed data
+    """
+    result = {
+        'filename': uploaded_file.name,
+        'success': False,
+        'data': None,
+        'error': None
+    }
+    
+    temp_pdf_path = None
+    try:
+        # Create temporary file with unique name to avoid conflicts
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir=temp_dir) as temp_pdf:
+            for chunk in uploaded_file.chunks():
+                temp_pdf.write(chunk)
+            temp_pdf_path = temp_pdf.name
+        
+        # Extract data using your existing function
+        summary = extract_statement_data(temp_pdf_path)
+        
+        # Validate extracted data
+        if 'account_type' not in summary:
+            result['error'] = "Could not extract valid data from file"
+            return result
+        
+        # Add source filename for tracking
+        summary['source'] = uploaded_file.name
+        
+        result['success'] = True
+        result['data'] = summary
+        
+    except Exception as e:
+        result['error'] = str(e)
+        logger.error(f"Error processing {uploaded_file.name}: {str(e)}")
+        
+    finally:
+        # Clean up temporary file
+        if temp_pdf_path and os.path.exists(temp_pdf_path):
+            try:
+                os.remove(temp_pdf_path)
+            except OSError as e:
+                logger.warning(f"Could not remove temp file {temp_pdf_path}: {str(e)}")
+    
+    return result
+
+# Multi-threaded PDF processing function
+def process_multiple_pdfs(uploaded_files, max_workers=None):
+    """
+    Process multiple PDF files concurrently using ThreadPoolExecutor
+    Returns: list of processed summaries and list of errors
+    """
+    if max_workers is None:
+        # Use min of 4 or number of files, but don't exceed system capabilities
+        max_workers = min(4, len(uploaded_files), (os.cpu_count() or 1) * 2)
+    
+    summaries = []
+    errors = []
+    
+    # Create a temporary directory for this batch
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Use ThreadPoolExecutor for concurrent processing
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_file = {
+                executor.submit(process_single_pdf, uploaded_file, temp_dir): uploaded_file.name 
+                for uploaded_file in uploaded_files
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_file):
+                filename = future_to_file[future]
+                try:
+                    result = future.result()
+                    
+                    if result['success']:
+                        summaries.append(result['data'])
+                        logger.info(f"Successfully processed {filename}")
+                    else:
+                        error_msg = f"Error processing {filename}: {result['error']}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
+                        
+                except Exception as e:
+                    error_msg = f"Unexpected error processing {filename}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+    
+    return summaries, errors
+
+# Main home/upload view with multi-threading
 @login_required
 def home(request):
     if request.method == 'POST':
         form = PDFUploadForm(request.POST, request.FILES)
         uploaded_files = request.FILES.getlist('pdf_file')
         group_by = request.POST.get('group_by', 'overall')
-        summaries = []
-
-        if uploaded_files:
-            for uploaded_file in uploaded_files:
-                try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
-                        for chunk in uploaded_file.chunks():
-                            temp_pdf.write(chunk)
-                        temp_pdf_path = temp_pdf.name
-
-                    summary = extract_statement_data(temp_pdf_path)
-                    os.remove(temp_pdf_path)
-
-                    if 'account_type' not in summary:
-                        return render(request, 'CreditRiskApp/result.html', {
-                            'prediction': f"⚠️ Could not extract valid data from {uploaded_file.name}."
-                        })
-
-                    summary['source'] = uploaded_file.name  # Track source filename for grouping
-                    summaries.append(summary)
-
-                except Exception as e:
-                    return render(request, 'CreditRiskApp/result.html', {
-                        'prediction': f"⚠️ Error processing {uploaded_file.name}: {str(e)}"
-                    })
-
-        if not summaries:
+        
+        if not uploaded_files:
             return render(request, 'CreditRiskApp/upload.html', {
                 'form': form,
                 'error': "Please upload at least one valid bank statement PDF."
             })
-
-        if group_by == 'name':
-            # Group by extracted name (not filename)
-            grouped = {}
-            for summary in summaries:
-                name = summary.get('name', 'Unknown')
-                grouped.setdefault(name, []).append(summary)
-
-            results = []
-            for name, group_summaries in grouped.items():
-                result = calculate_risk(group_summaries, name=name)
-                results.append(result)
-
+        
+        # Process files concurrently
+        try:
+            summaries, errors = process_multiple_pdfs(uploaded_files)
+            
+            # Handle errors
+            if errors:
+                error_messages = "\n".join(errors)
+                if not summaries:  # All files failed
+                    return render(request, 'CreditRiskApp/result.html', {
+                        'prediction': f"⚠️ Failed to process files:\n{error_messages}"
+                    })
+                else:  # Some files failed, show warnings
+                    messages.warning(request, f"Some files could not be processed: {error_messages}")
+            
+            if not summaries:
+                return render(request, 'CreditRiskApp/upload.html', {
+                    'form': form,
+                    'error': "No valid bank statement data could be extracted from the uploaded files."
+                })
+            
+            # Group results based on user selection
+            if group_by == 'name':
+                # Group by extracted name (not filename)
+                grouped = {}
+                for summary in summaries:
+                    name = summary.get('name', 'Unknown')
+                    grouped.setdefault(name, []).append(summary)
+                
+                results = []
+                for name, group_summaries in grouped.items():
+                    result = calculate_risk(group_summaries, name=name)
+                    results.append(result)
+                
+                return render(request, 'CreditRiskApp/result.html', {
+                    'grouped_results': results,
+                    'used_upload': True,
+                    'grouped_by': 'name',
+                    'processed_files': len(summaries),
+                    'total_files': len(uploaded_files)
+                })
+            
+            else:
+                # Overall aggregation
+                result = calculate_risk(summaries)
+                return render(request, 'CreditRiskApp/result.html', {
+                    'overall_result': result,
+                    'overall_explanations': result['explanations'],
+                    'used_upload': True,
+                    'grouped_by': 'overall',
+                    'processed_files': len(summaries),
+                    'total_files': len(uploaded_files)
+                })
+                
+        except Exception as e:
+            logger.error(f"Error in multi-threaded processing: {str(e)}")
             return render(request, 'CreditRiskApp/result.html', {
-                'grouped_results': results,
-                'used_upload': True,
-                'grouped_by': 'name'
+                'prediction': f"⚠️ System error during processing: {str(e)}"
             })
-
-        else:
-            # Overall aggregation
-            result = calculate_risk(summaries)
-            return render(request, 'CreditRiskApp/result.html', {
-                'overall_result': result,
-                'overall_explanations': result['explanations'],
-                'used_upload': True,
-                'grouped_by': 'overall'
-            })
-
+    
     else:
         form = PDFUploadForm()
         return render(request, 'CreditRiskApp/upload.html', {'form': form})
 
 
 def calculate_risk(summaries, name=None):
+    """
+    Calculate risk scores from processed summaries
+    This function remains unchanged but is included for completeness
+    """
     credit_summaries = [s for s in summaries if s.get('account_type') == 'credit']
     debit_summaries = [s for s in summaries if s.get('account_type') == 'debit']
 
@@ -170,4 +280,19 @@ def calculate_risk(summaries, name=None):
         'prediction': risk_bucket(overall_risk_score),
         'aggregated': None,
         'explanations': all_explanations
+    }
+
+# Optional: Add a settings configuration function
+def get_threading_config():
+    """
+    Get threading configuration from Django settings
+    Add these to your settings.py file:
+    
+    # Multi-threading settings for PDF processing
+    PDF_PROCESSING_MAX_WORKERS = 4
+    PDF_PROCESSING_TIMEOUT = 300  # 5 minutes
+    """
+    return {
+        'max_workers': getattr(settings, 'PDF_PROCESSING_MAX_WORKERS', 4),
+        'timeout': getattr(settings, 'PDF_PROCESSING_TIMEOUT', 300)
     }
