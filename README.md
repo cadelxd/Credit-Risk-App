@@ -17,7 +17,7 @@ venv\Scripts\activate<br>
 ### 3. Install Dependencies
 pip install -r requirements.txt
 
-### 4. Set you Gemini API Key
+### 4. Set your Gemini API Key
 create a .env file in the root directory:<br>
 GEMINI_API_KEY=your_gemini_api_key_here
 
